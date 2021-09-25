@@ -1,6 +1,11 @@
+mod alloc;
+mod categories;
 mod config;
 mod init;
 mod locate;
+mod ls;
+mod mkcat;
+mod mv;
 mod search;
 mod validate;
 
@@ -23,8 +28,13 @@ impl Root {
         let cfg = Config::load()?;
 
         match self.command {
+            Command::Alloc(cmd) => cmd.run(cfg),
+            Command::Categories(cmd) => cmd.run(cfg),
             Command::Init(cmd) => cmd.run(cfg),
             Command::Locate(cmd) => cmd.run(cfg),
+            Command::Ls(cmd) => cmd.run(cfg),
+            Command::MkCat(cmd) => cmd.run(cfg),
+            Command::Move(cmd) => cmd.run(cfg),
             Command::Search(cmd) => cmd.run(cfg),
             Command::Validate(cmd) => cmd.run(cfg),
         }
@@ -33,13 +43,30 @@ impl Root {
 
 #[derive(Clap)]
 pub enum Command {
+    /// Allocate a name.
+    Alloc(alloc::AllocCommand),
+
+    /// List categories.
+    Categories(categories::CategoriesCommand),
+
     /// Initialize an index.
     Init(init::InitCommand),
 
     /// Locate an ID.
     Locate(locate::LocateCommand),
 
-    // Search in the index.
+    /// List entries in a category.
+    Ls(ls::LsCommand),
+
+    /// Make a category.
+    #[clap(name = "mkcat")]
+    MkCat(mkcat::MkCatCommand),
+
+    /// Move a directory in the system.
+    #[clap(name = "mv")]
+    Move(mv::MoveCommand),
+
+    /// Search in the index.
     Search(search::SearchCommand),
 
     /// Validate a root.

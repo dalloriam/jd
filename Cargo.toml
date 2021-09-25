@@ -1,5 +1,5 @@
 [package]
-name = "johnny"
+name = "jd"
 version = "0.1.0"
 edition = "2018"
 
@@ -18,8 +18,9 @@ path = "src/main.rs"
 anyhow = "1"
 cfgloader = "0.1.1"
 clap = "3.0.0-beta.2"
-lazy_static = "1.4"
 dirs = "4"
+fs_extra = "1.2"
+lazy_static = "1.4"
 rayon = "1.5"
 regex = "1"
 serde = {version = "1", features = ["derive"]}

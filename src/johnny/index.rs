@@ -56,6 +56,20 @@ pub struct Category {
 }
 
 impl Category {
+    fn new(name: &str, cat_id: usize) -> Result<Self> {
+        let mut v = Vec::new();
+        v.resize(1000, None);
+        let items: [Option<Box<Item>>; 1000] = v
+            .try_into()
+            .map_err(|_| anyhow!("not supposed to happen"))?;
+
+        Ok(Self {
+            id: cat_id,
+            name: String::from(name),
+            items,
+        })
+    }
+
     fn build_from(name: &str, path: &Path, cat_id: usize) -> Result<Self> {
         let mut v = Vec::new();
         v.resize(1000, None);
@@ -68,7 +82,7 @@ impl Category {
         }
 
         for entry in fs::read_dir(&path)?.filter_map(|f| f.ok()) {
-            if entry.file_name().to_string_lossy().starts_with(".") {
+            if entry.file_name().to_string_lossy().starts_with('.') {
                 continue;
             }
 
@@ -120,6 +134,14 @@ impl Category {
             .map(|i| *i.clone())
             .collect()
     }
+
+    fn list(&self) -> Vec<Item> {
+        self.items
+            .iter()
+            .filter_map(|f| f.as_ref())
+            .map(|i| *i.clone())
+            .collect()
+    }
 }
 
 impl Display for Category {
@@ -144,7 +166,7 @@ impl Area {
         let mut categories: [Option<Category>; 10] = Default::default();
 
         for entry in fs::read_dir(&path)?.filter_map(|f| f.ok()) {
-            if entry.file_name().to_string_lossy().starts_with(".") {
+            if entry.file_name().to_string_lossy().starts_with('.') {
                 continue;
             }
 
@@ -216,10 +238,16 @@ impl Index {
         Ok(serde_json::from_reader(f)?)
     }
 
+    pub fn save<P: AsRef<Path>>(&self, path: P) -> Result<()> {
+        let f = fs::File::create(path.as_ref())?;
+        serde_json::to_writer(f, &self)?;
+        Ok(())
+    }
+
     pub fn build_from(&mut self, path: PathBuf) -> Result<()> {
         let area_re = Regex::new(r"(\d\d)-(\d\d) (.*)")?;
         for entry in fs::read_dir(&path)?.filter_map(|f| f.ok()) {
-            if entry.file_name().to_string_lossy().starts_with(".") {
+            if entry.file_name().to_string_lossy().starts_with('.') {
                 continue;
             }
 
@@ -307,11 +335,70 @@ impl Index {
             &mapping.default_root
         };
 
-        let dst = base_path
+        let category_path = base_path
             .join(PathBuf::from(format!("{}", area_ref)))
-            .join(PathBuf::from(format!("{}", category_ref)))
-            .join(PathBuf::from(format!("{}", item)));
+            .join(PathBuf::from(format!("{}", category_ref)));
+
+        if !category_path.exists() {
+            fs::create_dir_all(&category_path).ok()?;
+        }
+
+        let dst = category_path.join(PathBuf::from(format!("{}", item)));
 
         Some(Destination::Path(dst))
+    }
+
+    pub fn alloc_item(&mut self, category: usize, name: &str) -> Result<Item> {
+        let area_ref = self.areas[category / 10]
+            .as_mut()
+            .ok_or_else(|| anyhow!("category {} does not exist", category))?;
+        let category_ref = area_ref.categories[category % 10]
+            .as_mut()
+            .ok_or_else(|| anyhow!("category {} does not exist", category))?;
+
+        for i in 1..1000 {
+            if category_ref.items[i].is_some() {
+                continue;
+            }
+
+            let item = Item {
+                category,
+                id: i,
+                name: String::from(name),
+            };
+
+            category_ref.items[i] = Some(Box::new(item.clone()));
+            return Ok(item);
+        }
+
+        bail!("no IDs left");
+    }
+
+    pub fn add_category(&mut self, category: usize, name: &str) -> Result<()> {
+        if let Some(area) = self.areas[category / 10].as_mut() {
+            ensure!(
+                area.categories[category % 10].as_ref().is_none(),
+                "category {} already exists",
+                category
+            );
+
+            area.categories[category % 10] = Some(Category::new(name, category)?);
+
+            Ok(())
+        } else {
+            bail!("missing area: {}-{}", category / 10, category / 10 + 9);
+        }
+    }
+
+    pub fn list_for_category(&self, category: usize) -> Result<Vec<Item>> {
+        if let Some(area_ref) = self.areas[category / 10].as_ref() {
+            if let Some(cat_ref) = area_ref.categories[category % 10].as_ref() {
+                Ok(cat_ref.list())
+            } else {
+                bail!("missing category: {}", category);
+            }
+        } else {
+            bail!("missing area: {}-{}", category / 10, category / 10 + 9);
+        }
     }
 }

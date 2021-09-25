@@ -15,13 +15,13 @@ impl Default for Config {
         let index_path = dirs::data_dir()
             .unwrap()
             .join("dalloriam")
-            .join("johnny")
+            .join("jd")
             .join("index.json"); // yolo
 
         let mapping_path = dirs::data_dir()
             .unwrap()
             .join("dalloriam")
-            .join("johnny")
+            .join("jd")
             .join("mapping.json"); // yolo
 
         Self {
@@ -34,7 +34,7 @@ impl Default for Config {
 impl Config {
     pub fn load() -> Result<Self> {
         Ok(cfgloader::load_or_default(
-            "dalloriam/johnny",
+            "dalloriam/jd",
             "config",
             Self::default(),
         )?)
