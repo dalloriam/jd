@@ -21,6 +21,7 @@ clap = "3.0.0-beta.2"
 dirs = "4"
 fs_extra = "1.2"
 lazy_static = "1.4"
+open = "2"
 rayon = "1.5"
 regex = "1"
 serde = {version = "1", features = ["derive"]}

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::{collections::HashMap, fs, path::Path};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 
 use serde::{Deserialize, Serialize};
 
@@ -27,7 +27,10 @@ pub struct Mapping {
 
 impl Mapping {
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let f = fs::File::open(path.as_ref())?;
+        let f = fs::File::open(path.as_ref()).context(format!(
+            "failed to find mapping file at {:?}",
+            path.as_ref()
+        ))?;
         Ok(serde_json::from_reader(f)?)
     }
 }

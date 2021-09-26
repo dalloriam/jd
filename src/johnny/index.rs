@@ -154,7 +154,7 @@ impl Display for Category {
 pub struct Area {
     pub bounds: (usize, usize),
     pub name: String,
-    pub categories: [Option<Category>; 10],
+    pub categories: [Option<Box<Category>>; 10],
 }
 
 impl Area {
@@ -163,7 +163,7 @@ impl Area {
             static ref CATEGORY_RE: Regex = Regex::new(r"(\d\d) (.*)").unwrap();
         }
 
-        let mut categories: [Option<Category>; 10] = Default::default();
+        let mut categories: [Option<Box<Category>>; 10] = Default::default();
 
         for entry in fs::read_dir(&path)?.filter_map(|f| f.ok()) {
             if entry.file_name().to_string_lossy().starts_with('.') {
@@ -198,7 +198,7 @@ impl Area {
                     "duplicate category: {}",
                     category
                 );
-                categories[category % 10] = Some(cat);
+                categories[category % 10] = Some(Box::new(cat));
             }
         }
 
@@ -382,7 +382,7 @@ impl Index {
                 category
             );
 
-            area.categories[category % 10] = Some(Category::new(name, category)?);
+            area.categories[category % 10] = Some(Box::new(Category::new(name, category)?));
 
             Ok(())
         } else {
