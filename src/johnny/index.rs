@@ -401,4 +401,27 @@ impl Index {
             bail!("missing area: {}-{}", category / 10, category / 10 + 9);
         }
     }
+
+    pub fn rm(&mut self, id: &str) -> Result<()> {
+        let (category, item_id) = id.split_once('.').ok_or_else(|| anyhow!("invalid id"))?;
+
+        let category = category.parse::<usize>()?;
+        let item_id = item_id.parse::<usize>()?;
+
+        let area_ref = self.areas[category / 10].as_mut().ok_or_else(|| {
+            anyhow!(
+                "area {}-{} does not exist",
+                category / 10,
+                category / 10 + 9
+            )
+        })?;
+
+        let category_ref = area_ref.categories[category % 10]
+            .as_mut()
+            .ok_or_else(|| anyhow!("category {} does not exist", category))?;
+
+        category_ref.items[item_id] = None;
+
+        Ok(())
+    }
 }

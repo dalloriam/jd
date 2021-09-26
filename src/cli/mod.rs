@@ -6,6 +6,7 @@ mod locate;
 mod ls;
 mod mkcat;
 mod mv;
+mod rm;
 mod search;
 mod validate;
 
@@ -35,6 +36,7 @@ impl Root {
             Command::Ls(cmd) => cmd.run(cfg),
             Command::MkCat(cmd) => cmd.run(cfg),
             Command::Move(cmd) => cmd.run(cfg),
+            Command::Rm(cmd) => cmd.run(cfg),
             Command::Search(cmd) => cmd.run(cfg),
             Command::Validate(cmd) => cmd.run(cfg),
         }
@@ -65,6 +67,9 @@ pub enum Command {
     /// Move a directory in the system.
     #[clap(name = "mv")]
     Move(mv::MoveCommand),
+
+    #[clap(name = "rm")]
+    Rm(rm::RmCommand),
 
     /// Search in the index.
     Search(search::SearchCommand),
