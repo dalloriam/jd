@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::Clap;
 
 use johnny::{Destination, Index, Mapping};
@@ -28,6 +28,9 @@ impl SearchCommand {
         let index = Index::load(config.index_path)?;
         let mapping = Mapping::load(config.mapping_path)?;
 
+        let mut last_area_name = String::default();
+        let mut last_category_name = String::default();
+
         for result in index.search(&self.expr) {
             // TODO: This is super slow since we still search the full tree,
             // implement it intelligently in the future please.
@@ -42,6 +45,24 @@ impl SearchCommand {
                 }
             }
 
+            let area = index.areas[result.category / 10]
+                .as_ref()
+                .ok_or_else(|| anyhow!("missing area"))?;
+
+            let category = area.categories[result.category % 10]
+                .as_ref()
+                .ok_or_else(|| anyhow!("missing category"))?;
+
+            if !self.locate && area.name != last_area_name {
+                println!("- {:02}-{:02} {}", area.bounds.0, area.bounds.1, area.name);
+                last_area_name = area.name.clone();
+            }
+
+            if !self.locate && category.name != last_category_name {
+                println!("  - {} {}", category.id, category.name);
+                last_category_name = category.name.clone();
+            }
+
             if self.locate {
                 if let Some(Destination::Path(p)) = index.locate(
                     &format!("{:02}.{:03}", result.category, result.id),
@@ -50,7 +71,7 @@ impl SearchCommand {
                     println!("{}", p.to_string_lossy())
                 }
             } else {
-                println!("{}", result);
+                println!("    - {}", result);
             }
         }
         Ok(())
