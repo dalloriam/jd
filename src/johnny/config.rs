@@ -1,13 +1,21 @@
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 use anyhow::Result;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum ResolverConfig {
+    DiskResolver { root: PathBuf },
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Config {
-    pub index_path: PathBuf, // TODO: Support storing the index in menmos
-    pub mapping_path: PathBuf,
+    pub index_path: PathBuf,
+
+    #[serde(default = "HashMap::new")]
+    pub resolvers: HashMap<usize, ResolverConfig>,
 }
 
 impl Default for Config {
@@ -18,15 +26,11 @@ impl Default for Config {
             .join("jd")
             .join("index.json"); // yolo
 
-        let mapping_path = dirs::data_dir()
-            .unwrap()
-            .join("dalloriam")
-            .join("jd")
-            .join("mapping.json"); // yolo
+        let resolvers = HashMap::new();
 
         Self {
-            mapping_path,
             index_path,
+            resolvers,
         }
     }
 }

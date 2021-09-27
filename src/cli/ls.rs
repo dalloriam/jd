@@ -1,9 +1,7 @@
 use anyhow::{anyhow, Result};
 use clap::Clap;
 
-use johnny::Index;
-
-use super::Config;
+use johnny::JohnnyDecimal;
 
 #[derive(Clap)]
 pub struct LsCommand {
@@ -11,10 +9,9 @@ pub struct LsCommand {
 }
 
 impl LsCommand {
-    pub fn run(self, config: Config) -> Result<()> {
-        let index = Index::load(&config.index_path)?;
-
-        let area = index
+    pub fn run(self, jd: JohnnyDecimal) -> Result<()> {
+        let area = jd
+            .index
             .get_area_from_category(self.category)?
             .ok_or_else(|| anyhow!("area does not exist"))?;
 

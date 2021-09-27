@@ -1,220 +1,281 @@
-use std::collections::HashMap;
+use std::convert::TryInto;
 use std::fmt::Display;
+use std::fs;
 use std::path::{Path, PathBuf};
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, bail, ensure, Result};
 
-pub enum Location {
-    Path(PathBuf),
-    URL(String),
+use rayon::prelude::*;
+
+use serde::{de::Error, ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
+
+use crate::{Config, Item, Location, LocationResolver, ID};
+
+fn from_vec<'de, D>(deserializer: D) -> std::result::Result<[Option<Box<Item>>; 1000], D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let v: Vec<Option<Box<Item>>> = Deserialize::deserialize(deserializer)?;
+    v.try_into()
+        .map_err(|_| D::Error::custom("expected a vec of length 1000"))
 }
 
-pub struct ID {
-    pub category: usize,
-    pub id: usize,
-}
-
-impl Display for ID {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:02}.{:03}", self.category, self.id)
+fn to_vec<S>(v: &[Option<Box<Item>>; 1000], s: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let v = Vec::from(v.as_ref());
+    let mut seq = s.serialize_seq(Some(v.len()))?;
+    for item in v {
+        seq.serialize_element(&item)?;
     }
+
+    seq.end()
 }
 
-pub trait LocationResolver {
-    fn get(&self, item: &Item) -> Result<Option<Location>>;
-    fn list(&self) -> Result<Vec<Item>>;
-    fn set(&self, item: &Item, src_location: Location) -> Result<()>;
-    fn remove(&self, id: &Item) -> Result<()>;
-}
-
-pub struct Item {
-    id: ID,
-    name: String,
-}
-
-impl Display for Item {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {}", self.id, self.name)
-    }
-}
-
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Category {
-    pub id: u16,
+    pub id: usize,
     pub name: String,
-    items: [Box<Option<Item>>; 1000],
+
+    #[serde(deserialize_with = "from_vec", serialize_with = "to_vec")]
+    items: [Option<Box<Item>>; 1000],
+}
+
+impl Display for Category {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:02} {}", self.id, self.name)
+    }
 }
 
 impl Category {
+    pub fn new(id: usize, name: String) -> Self {
+        let mut v = Vec::new();
+        v.resize(1000, None);
+        let items: [Option<Box<Item>>; 1000] = v.try_into().unwrap(); // safe because we alloc the vector one line above
+
+        Self { id, name, items }
+    }
+
     pub fn add_item(&mut self, name: &str) -> Result<Item> {
-        unimplemented!()
+        for id in 1..1000 {
+            if self.items.get(id).is_some() {
+                continue;
+            }
+
+            let item = Item {
+                id: ID {
+                    category: self.id,
+                    id,
+                },
+                name: String::from(name),
+            };
+
+            self.items[id] = Some(Box::from(item.clone()));
+            return Ok(item);
+        }
+
+        bail!("no more available IDs");
     }
 
-    pub fn get_item(&self, id: usize) -> Result<Option<Item>> {
-        unimplemented!()
+    pub fn get_item(&self, id: &ID) -> Result<Option<Item>> {
+        ensure!(id.category == self.id, "invalid category");
+        ensure!(id.id < 1000, "id out of range");
+        Ok(self.items[id.id].clone().map(|i| *i))
     }
 
-    pub fn list_items(&self) -> &[Item] {
-        unimplemented!()
+    pub fn list_items(&self) -> Vec<Item> {
+        // TODO: Would be faster to return an iterator
+        self.items
+            .iter()
+            .filter_map(|i| i.as_deref().cloned())
+            .collect()
     }
 
-    pub fn remove_item(&self, id: &ID) -> Result<()> {
-        unimplemented!()
+    pub fn remove_item(&mut self, id: &ID) -> Result<()> {
+        ensure!(id.category == self.id, "invalid category");
+        ensure!(id.id < 1000, "id out of range");
+        self.items[id.id] = None;
+        Ok(())
+    }
+
+    pub fn search(&self, query: &str) -> Vec<Item> {
+        self.items
+            .par_iter()
+            .filter_map(|f| f.as_ref())
+            .filter(|item| item.name.to_lowercase().contains(query))
+            .map(|i| *i.clone())
+            .collect()
     }
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Area {
     pub bounds: (usize, usize),
     pub name: String,
-    categories: [Box<Option<Category>>; 10],
+    categories: [Option<Box<Category>>; 10],
+}
+
+impl Display for Area {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:02}-{:02} {}", self.bounds.0, self.bounds.1, self.name)
+    }
 }
 
 impl Area {
-    pub fn create_category(&self, category_id: usize, name: &str) -> Result<&Category> {
-        unimplemented!()
+    pub fn new(bounds: (usize, usize), name: String) -> Self {
+        Self {
+            bounds,
+            name,
+            categories: Default::default(),
+        }
+    }
+
+    pub fn create_category(&mut self, category_id: usize, name: &str) -> Result<&Category> {
+        ensure!(category_id < 10, "category out of range");
+
+        ensure!(
+            category_id % 10 >= self.bounds.0 && category_id % 10 <= self.bounds.1,
+            "invalid area for this category"
+        );
+
+        ensure!(
+            self.categories[category_id % 10].is_none(),
+            "category already exists"
+        );
+
+        self.categories[category_id % 10] =
+            Some(Box::new(Category::new(category_id, String::from(name))));
+
+        Ok(self.categories[category_id % 10].as_deref().unwrap())
     }
 
     pub fn get_category(&self, category_id: usize) -> Result<Option<&Category>> {
-        unimplemented!()
+        ensure!(category_id < 10, "category out of range");
+
+        ensure!(
+            category_id % 10 >= self.bounds.0 && category_id % 10 <= self.bounds.1,
+            "invalid area for this category"
+        );
+
+        Ok(self.categories[category_id % 10].as_deref())
     }
 
     pub fn get_category_mut(&mut self, category_id: usize) -> Result<Option<&mut Category>> {
-        unimplemented!()
+        ensure!(category_id < 10, "category out of range");
+
+        ensure!(
+            category_id % 10 >= self.bounds.0 && category_id % 10 <= self.bounds.1,
+            "invalid area for this category"
+        );
+
+        Ok(self.categories[category_id % 10].as_deref_mut())
     }
 
-    pub fn list_categories(&self) -> &[Category] {
-        unimplemented!()
+    pub fn list_categories(&self) -> Vec<&Category> {
+        // TODO: Would be faster to return an iterator
+        self.categories
+            .iter()
+            .filter_map(|c| c.as_deref())
+            .collect::<Vec<_>>()
+    }
+
+    pub fn search(&self, query: &str) -> Vec<Item> {
+        self.categories
+            .par_iter()
+            .filter_map(|f| f.as_ref())
+            .map(|cat| cat.search(query))
+            .reduce(Vec::default, |mut a, mut b| {
+                a.append(&mut b);
+                a
+            })
     }
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Index {
-    areas: [Box<Option<Area>>; 10],
+    areas: [Option<Box<Area>>; 10],
 }
 
 impl Index {
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self> {
-        unimplemented!()
+        let f = fs::File::open(path.as_ref())?;
+        Ok(serde_json::from_reader(f)?)
     }
 
     pub fn save<P: AsRef<Path>>(&self, path: P) -> Result<()> {
-        unimplemented!()
+        let f = fs::File::create(path.as_ref())?;
+        serde_json::to_writer(f, &self)?;
+        Ok(())
     }
 
-    pub fn create_area(&self, bounds: (usize, usize), name: &str) -> Result<&Area> {
-        unimplemented!()
+    pub fn create_area(&mut self, bounds: (usize, usize), name: &str) -> Result<&Area> {
+        ensure!(
+            bounds.0 % 10 == 0 && bounds.1 == bounds.0 + 9,
+            "invalid bounds"
+        );
+        ensure!(self.areas[bounds.0 / 10].is_none(), "area already exists");
+
+        let area = Area::new(bounds, String::from(name));
+        self.areas[bounds.0 / 10] = Some(Box::new(area));
+        Ok(self.areas[bounds.0 / 10].as_deref().unwrap())
+    }
+
+    pub fn create_area_mut(&mut self, bounds: (usize, usize), name: &str) -> Result<&mut Area> {
+        ensure!(
+            bounds.0 % 10 == 0 && bounds.1 == bounds.0 + 9,
+            "invalid bounds"
+        );
+        ensure!(self.areas[bounds.0 / 10].is_none(), "area already exists");
+
+        let area = Area::new(bounds, String::from(name));
+        self.areas[bounds.0 / 10] = Some(Box::new(area));
+        Ok(self.areas[bounds.0 / 10].as_deref_mut().unwrap())
     }
 
     pub fn get_area(&self, bounds: (usize, usize)) -> Result<Option<&Area>> {
-        unimplemented!()
+        ensure!(
+            bounds.0 % 10 == 0 && bounds.1 == bounds.0 + 9,
+            "invalid bounds"
+        );
+        Ok(self.areas[bounds.0 / 10].as_deref())
     }
 
     pub fn get_area_mut(&mut self, bounds: (usize, usize)) -> Result<Option<&mut Area>> {
-        unimplemented!()
+        ensure!(
+            bounds.0 % 10 == 0 && bounds.1 == bounds.0 + 9,
+            "invalid bounds"
+        );
+        Ok(self.areas[bounds.0 / 10].as_deref_mut())
     }
 
     pub fn get_area_from_category(&self, category: usize) -> Result<Option<&Area>> {
-        unimplemented!()
+        ensure!(category < 100, "invalid category");
+        Ok(self.areas[category / 10].as_deref())
     }
 
     pub fn get_area_from_category_mut(&mut self, category: usize) -> Result<Option<&mut Area>> {
-        unimplemented!()
+        ensure!(category < 100, "invalid category");
+        Ok(self.areas[category / 10].as_deref_mut())
     }
 
-    pub fn list_areas(&self) -> &[Area] {
-        unimplemented!()
+    pub fn list_areas(&self) -> Vec<&Area> {
+        // TODO: Would be faster to return an iterator
+        self.areas
+            .iter()
+            .filter_map(|c| c.as_deref())
+            .collect::<Vec<_>>()
     }
 
     pub fn search(&self, query: &str) -> Vec<Item> {
-        unimplemented!()
-    }
-}
-
-pub enum ResolverConfig {
-    DiskResolver { root: PathBuf },
-}
-
-pub struct JDConfig {
-    index_path: PathBuf,
-    resolvers: HashMap<usize, ResolverConfig>,
-}
-
-pub struct JD {
-    config: JDConfig,
-    pub index: Box<Index>,
-    resolvers: HashMap<usize, Box<dyn LocationResolver>>,
-}
-
-impl JD {
-    pub fn mv(&mut self, category: usize, source_path: &Path) -> Result<Item> {
-        let resolver = self
-            .resolvers
-            .get(&category)
-            .ok_or_else(|| anyhow!("no resolver for category: {}", category))?;
-
-        let area = self
-            .index
-            .get_area_from_category_mut(category)?
-            .ok_or_else(|| anyhow!("missing area"))?;
-
-        let category = area
-            .get_category_mut(category)?
-            .ok_or_else(|| anyhow!("missing category"))?;
-
-        let name = source_path
-            .file_name()
-            .unwrap()
-            .to_string_lossy()
-            .to_string();
-        let item = category.add_item(&name)?;
-
-        let src_location = Location::Path(PathBuf::from(source_path));
-
-        resolver.set(&item, src_location)?;
-
-        Ok(item)
-    }
-
-    pub fn locate(&self, id: &ID) -> Result<Option<Location>> {
-        let resolver = self
-            .resolvers
-            .get(&id.category)
-            .ok_or_else(|| anyhow!("no resolver for category: {}", id.category))?;
-
-        let area = self
-            .index
-            .get_area_from_category(id.category)?
-            .ok_or_else(|| anyhow!("missing area"))?;
-
-        let category = area
-            .get_category(id.category)?
-            .ok_or_else(|| anyhow!("missing category"))?;
-
-        if let Some(item) = category.get_item(id.category)? {
-            resolver.get(&item)
-        } else {
-            Ok(None)
-        }
-    }
-
-    pub fn rm(&mut self, id: &ID) -> Result<()> {
-        let area = self
-            .index
-            .get_area_from_category_mut(id.category)?
-            .ok_or_else(|| anyhow!("missing area"))?;
-
-        let category = area
-            .get_category_mut(id.category)?
-            .ok_or_else(|| anyhow!("missing category"))?;
-
-        if let Some(item) = category.get_item(id.id)? {
-            let resolver = self
-                .resolvers
-                .get(&item.id.category)
-                .ok_or_else(|| anyhow!("missing resolver"))?;
-
-            resolver.remove(&item)?;
-            category.remove_item(&item.id)?;
-        }
-
-        Ok(())
+        let q = query.to_lowercase();
+        self.areas
+            .par_iter()
+            .filter_map(|f| f.as_ref())
+            .map(|area| area.search(&q))
+            .reduce(Vec::default, |mut a, mut b| {
+                a.append(&mut b);
+                a
+            })
     }
 }

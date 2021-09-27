@@ -1,7 +1,5 @@
-mod alloc;
 mod categories;
-mod config;
-mod init;
+//mod init;
 mod locate;
 mod ls;
 mod mkcat;
@@ -9,12 +7,13 @@ mod mv;
 mod open;
 mod rm;
 mod search;
-mod validate;
-
-use config::Config;
+//mod validate;
 
 use anyhow::Result;
+
 use clap::Clap;
+
+use johnny::{Config, JohnnyDecimal};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -28,33 +27,30 @@ pub struct Root {
 impl Root {
     pub fn run(self) -> Result<()> {
         let cfg = Config::load()?;
+        let client = JohnnyDecimal::new(cfg)?;
 
         match self.command {
-            Command::Alloc(cmd) => cmd.run(cfg),
-            Command::Categories(cmd) => cmd.run(cfg),
-            Command::Init(cmd) => cmd.run(cfg),
-            Command::Locate(cmd) => cmd.run(cfg),
-            Command::Ls(cmd) => cmd.run(cfg),
-            Command::MkCat(cmd) => cmd.run(cfg),
-            Command::Move(cmd) => cmd.run(cfg),
-            Command::Open(cmd) => cmd.run(cfg),
-            Command::Rm(cmd) => cmd.run(cfg),
-            Command::Search(cmd) => cmd.run(cfg),
-            Command::Validate(cmd) => cmd.run(cfg),
+            Command::Categories(cmd) => cmd.run(client),
+            //Command::Init(cmd) => cmd.run(client),
+            Command::Locate(cmd) => cmd.run(client),
+            Command::Ls(cmd) => cmd.run(client),
+            Command::MkCat(cmd) => cmd.run(client),
+            Command::Move(cmd) => cmd.run(client),
+            Command::Open(cmd) => cmd.run(client),
+            Command::Rm(cmd) => cmd.run(client),
+            Command::Search(cmd) => cmd.run(client),
+            //Command::Validate(cmd) => cmd.run(client),
         }
     }
 }
 
 #[derive(Clap)]
 pub enum Command {
-    /// Allocate a name.
-    Alloc(alloc::AllocCommand),
-
     /// List categories.
     Categories(categories::CategoriesCommand),
 
     /// Initialize an index.
-    Init(init::InitCommand),
+    //Init(init::InitCommand),
 
     /// Locate an ID.
     Locate(locate::LocateCommand),
@@ -78,7 +74,5 @@ pub enum Command {
 
     /// Search in the index.
     Search(search::SearchCommand),
-
-    /// Validate a root.
-    Validate(validate::ValidateCommand),
+    //Validate(validate::ValidateCommand),
 }

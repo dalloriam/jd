@@ -1,9 +1,7 @@
 use anyhow::{anyhow, Result};
 use clap::Clap;
 
-use johnny::Index;
-
-use super::Config;
+use johnny::JohnnyDecimal;
 
 #[derive(Clap)]
 pub struct MkCatCommand {
@@ -12,14 +10,15 @@ pub struct MkCatCommand {
 }
 
 impl MkCatCommand {
-    pub fn run(self, config: Config) -> Result<()> {
-        let mut index = Index::load(&config.index_path)?;
-        let mut area = index
+    pub fn run(self, mut jd: JohnnyDecimal) -> Result<()> {
+        let area = jd
+            .index
             .get_area_from_category_mut(self.category)?
             .ok_or_else(|| anyhow!("area does not exist"))?;
 
         area.create_category(self.category, &self.name)?;
-        index.save(&config.index_path)?;
+
+        jd.save()?;
 
         Ok(())
     }

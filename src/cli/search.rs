@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use clap::Clap;
 
-use johnny::{Destination, Index, Mapping};
+use johnny::{Destination, Index, JohnnyDecimal, Mapping};
 
 use super::Config;
 
@@ -24,33 +24,31 @@ pub struct SearchCommand {
 }
 
 impl SearchCommand {
-    pub fn run(self, config: Config) -> Result<()> {
-        let index = Index::load(config.index_path)?;
-        let mapping = Mapping::load(config.mapping_path)?;
-
+    pub fn run(self, jd: JohnnyDecimal) -> Result<()> {
         let mut last_area_name = String::default();
         let mut last_category_name = String::default();
 
-        for result in index.search(&self.expr) {
+        for result in jd.index.search(&self.expr) {
             // TODO: This is super slow since we still search the full tree,
             // implement it intelligently in the future please.
             if let Some(a) = self.area.as_ref() {
-                if *a / 10 != result.category / 10 {
+                if *a / 10 != result.id.category / 10 {
                     continue;
                 }
             }
             if let Some(c) = self.category.as_ref() {
-                if *c != result.category {
+                if *c != result.id.category {
                     continue;
                 }
             }
 
-            let area = index.areas[result.category / 10]
-                .as_ref()
+            let area = jd
+                .index
+                .get_area_from_category(result.id.category)?
                 .ok_or_else(|| anyhow!("missing area"))?;
 
-            let category = area.categories[result.category % 10]
-                .as_ref()
+            let category = area
+                .get_category(result.id.category)?
                 .ok_or_else(|| anyhow!("missing category"))?;
 
             if !self.locate && area.name != last_area_name {
@@ -64,11 +62,8 @@ impl SearchCommand {
             }
 
             if self.locate {
-                if let Some(Destination::Path(p)) = index.locate(
-                    &format!("{:02}.{:03}", result.category, result.id),
-                    &mapping,
-                ) {
-                    println!("{}", p.to_string_lossy())
+                if let Some(loc) = jd.locate(&result.id)? {
+                    println!("{}", loc);
                 }
             } else {
                 println!("    - {}", result);

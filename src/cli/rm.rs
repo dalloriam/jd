@@ -1,11 +1,7 @@
-use std::fs;
-
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use clap::Clap;
 
-use johnny::{Destination, Index, Mapping};
-
-use super::Config;
+use johnny::{JohnnyDecimal, ID};
 
 #[derive(Clap)]
 pub struct RmCommand {
@@ -13,18 +9,9 @@ pub struct RmCommand {
 }
 
 impl RmCommand {
-    pub fn run(self, config: Config) -> Result<()> {
-        let mut index = Index::load(&config.index_path)?;
-        let mapping = Mapping::load(&config.mapping_path)?;
-
-        let Destination::Path(path) = index
-            .locate(&self.id, &mapping)
-            .ok_or_else(|| anyhow!("missing destination"))?;
-
-        index.rm(&self.id)?;
-
-        fs::remove_dir_all(path)?;
-
+    pub fn run(self, mut jd: JohnnyDecimal) -> Result<()> {
+        let id = self.id.parse::<ID>()?;
+        jd.rm(&id)?;
         Ok(())
     }
 }

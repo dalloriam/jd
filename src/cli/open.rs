@@ -1,9 +1,7 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use clap::Clap;
 
-use johnny::{Destination, Index, Mapping};
-
-use super::Config;
+use johnny::{JohnnyDecimal, Location, ID};
 
 #[derive(Clap)]
 pub struct OpenCommand {
@@ -11,15 +9,14 @@ pub struct OpenCommand {
 }
 
 impl OpenCommand {
-    pub fn run(self, config: Config) -> Result<()> {
-        let index = Index::load(&config.index_path)?;
-        let mapping = Mapping::load(&config.mapping_path)?;
-
-        let Destination::Path(p) = index
-            .locate(&self.id, &mapping)
-            .ok_or_else(|| anyhow!("{} not found", &self.id))?;
-
-        open::that(p)?;
+    pub fn run(self, jd: JohnnyDecimal) -> Result<()> {
+        let id = self.id.parse::<ID>()?;
+        if let Some(location) = jd.locate(&id)? {
+            match location {
+                Location::Path(p) => open::that(p)?,
+                Location::URL(url) => open::that(url)?,
+            }
+        }
 
         Ok(())
     }

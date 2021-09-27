@@ -1,9 +1,7 @@
 use anyhow::Result;
 use clap::Clap;
 
-use johnny::{Destination, Index, Mapping};
-
-use super::Config;
+use johnny::{JohnnyDecimal, ID};
 
 #[derive(Clap)]
 pub struct LocateCommand {
@@ -12,12 +10,10 @@ pub struct LocateCommand {
 }
 
 impl LocateCommand {
-    pub fn run(self, config: Config) -> Result<()> {
-        let index = Index::load(config.index_path)?;
-        let mapping = Mapping::load(config.mapping_path)?;
-        if let Some(dest) = index.locate(&self.id, &mapping) {
-            let Destination::Path(p) = dest;
-            println!("{}", p.to_string_lossy())
+    pub fn run(self, jd: JohnnyDecimal) -> Result<()> {
+        let id = self.id.parse::<ID>()?;
+        if let Some(loc) = jd.locate(&id)? {
+            println!("{}", loc);
         }
         Ok(())
     }
