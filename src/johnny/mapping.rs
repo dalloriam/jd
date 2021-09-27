@@ -5,7 +5,7 @@ use anyhow::{Context, Result};
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum Destination {
     Path(PathBuf),
