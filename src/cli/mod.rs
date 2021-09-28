@@ -1,5 +1,6 @@
 mod categories;
-//mod init;
+mod init;
+mod json;
 mod locate;
 mod ls;
 mod mkcat;
@@ -20,8 +21,16 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 #[derive(Clap)]
 #[clap(version = VERSION, author = "William Dussault")]
 pub struct Root {
+    #[clap(long = "json")]
+    json: bool,
+
     #[clap(subcommand)]
     command: Command,
+}
+
+pub trait JCommand {
+    fn run(&self, jd: JohnnyDecimal) -> Result<()>;
+    fn run_json(&self, jd: JohnnyDecimal) -> Result<()>;
 }
 
 impl Root {
@@ -29,17 +38,23 @@ impl Root {
         let cfg = Config::load()?;
         let client = JohnnyDecimal::new(cfg)?;
 
-        match self.command {
-            Command::Categories(cmd) => cmd.run(client),
-            //Command::Init(cmd) => cmd.run(client),
-            Command::Locate(cmd) => cmd.run(client),
-            Command::Ls(cmd) => cmd.run(client),
-            Command::MkCat(cmd) => cmd.run(client),
-            Command::Move(cmd) => cmd.run(client),
-            Command::Open(cmd) => cmd.run(client),
-            Command::Rm(cmd) => cmd.run(client),
-            Command::Search(cmd) => cmd.run(client),
+        let cmd: Box<dyn JCommand> = match self.command {
+            Command::Categories(cmd) => Box::new(cmd),
+            Command::Init(cmd) => Box::new(cmd),
+            Command::Locate(cmd) => Box::new(cmd),
+            Command::Ls(cmd) => Box::new(cmd),
+            Command::MkCat(cmd) => Box::new(cmd),
+            Command::Move(cmd) => Box::new(cmd),
+            Command::Open(cmd) => Box::new(cmd),
+            Command::Rm(cmd) => Box::new(cmd),
+            Command::Search(cmd) => Box::new(cmd),
             //Command::Validate(cmd) => cmd.run(client),
+        };
+
+        if self.json {
+            cmd.run_json(client)
+        } else {
+            cmd.run(client)
         }
     }
 }
@@ -50,7 +65,7 @@ pub enum Command {
     Categories(categories::CategoriesCommand),
 
     /// Initialize an index.
-    //Init(init::InitCommand),
+    Init(init::InitCommand),
 
     /// Locate an ID.
     Locate(locate::LocateCommand),

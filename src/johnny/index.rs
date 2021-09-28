@@ -1,15 +1,15 @@
 use std::convert::TryInto;
 use std::fmt::Display;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
-use anyhow::{anyhow, bail, ensure, Result};
+use anyhow::{bail, ensure, Result};
 
 use rayon::prelude::*;
 
 use serde::{de::Error, ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::{Config, Item, Location, LocationResolver, ID};
+use crate::{Item, ID};
 
 fn from_vec<'de, D>(deserializer: D) -> std::result::Result<[Option<Box<Item>>; 1000], D::Error>
 where
@@ -63,19 +63,29 @@ impl Category {
                 continue;
             }
 
+            let id = ID {
+                category: self.id,
+                id,
+            };
+
             let item = Item {
-                id: ID {
-                    category: self.id,
-                    id,
-                },
+                id,
                 name: String::from(name),
             };
 
-            self.items[id] = Some(Box::from(item.clone()));
-            return Ok(item);
+            return self.import_item(item);
         }
 
         bail!("no more available IDs");
+    }
+
+    pub fn import_item(&mut self, item: Item) -> Result<Item> {
+        ensure!(item.id.id < 1000, "invalid item id");
+        ensure!(item.id.category == self.id, "invalid item category");
+        ensure!(self.items[item.id.id].is_none(), "item already exists");
+
+        self.items[item.id.id] = Some(Box::from(item.clone()));
+        Ok(item)
     }
 
     pub fn get_item(&self, id: &ID) -> Result<Option<Item>> {
@@ -131,12 +141,12 @@ impl Area {
         }
     }
 
-    pub fn create_category(&mut self, category_id: usize, name: &str) -> Result<&Category> {
-        ensure!(category_id < 10, "category out of range");
-
+    pub fn create_category(&mut self, category_id: usize, name: String) -> Result<&Category> {
         ensure!(
-            category_id % 10 >= self.bounds.0 && category_id % 10 <= self.bounds.1,
-            "invalid area for this category"
+            category_id >= self.bounds.0 && category_id <= self.bounds.1,
+            "invalid area {} for category {:02}",
+            self,
+            category_id
         );
 
         ensure!(
@@ -144,29 +154,50 @@ impl Area {
             "category already exists"
         );
 
-        self.categories[category_id % 10] =
-            Some(Box::new(Category::new(category_id, String::from(name))));
+        self.categories[category_id % 10] = Some(Box::new(Category::new(category_id, name)));
 
         Ok(self.categories[category_id % 10].as_deref().unwrap())
     }
 
-    pub fn get_category(&self, category_id: usize) -> Result<Option<&Category>> {
-        ensure!(category_id < 10, "category out of range");
+    pub fn create_category_mut(
+        &mut self,
+        category_id: usize,
+        name: String,
+    ) -> Result<&mut Category> {
+        ensure!(
+            category_id >= self.bounds.0 && category_id <= self.bounds.1,
+            "invalid area {} for category {:02}",
+            self,
+            category_id
+        );
 
         ensure!(
-            category_id % 10 >= self.bounds.0 && category_id % 10 <= self.bounds.1,
-            "invalid area for this category"
+            self.categories[category_id % 10].is_none(),
+            "category already exists"
+        );
+
+        self.categories[category_id % 10] = Some(Box::new(Category::new(category_id, name)));
+
+        Ok(self.categories[category_id % 10].as_deref_mut().unwrap())
+    }
+
+    pub fn get_category(&self, category_id: usize) -> Result<Option<&Category>> {
+        ensure!(
+            category_id >= self.bounds.0 && category_id <= self.bounds.1,
+            "invalid area {} for category {:02}",
+            self,
+            category_id
         );
 
         Ok(self.categories[category_id % 10].as_deref())
     }
 
     pub fn get_category_mut(&mut self, category_id: usize) -> Result<Option<&mut Category>> {
-        ensure!(category_id < 10, "category out of range");
-
         ensure!(
-            category_id % 10 >= self.bounds.0 && category_id % 10 <= self.bounds.1,
-            "invalid area for this category"
+            category_id >= self.bounds.0 && category_id <= self.bounds.1,
+            "invalid area {} for category {:02}",
+            self,
+            category_id
         );
 
         Ok(self.categories[category_id % 10].as_deref_mut())
@@ -192,7 +223,7 @@ impl Area {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Index {
     areas: [Option<Box<Area>>; 10],
 }

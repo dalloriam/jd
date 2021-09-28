@@ -2,15 +2,12 @@ mod client;
 mod config;
 mod index;
 mod item;
-mod mapping;
-mod provider;
 mod resolver;
 
-use resolver::{LocationResolver};
+use resolver::LocationResolver;
 
 pub use client::JohnnyDecimal;
-pub use config::Config;
-pub use resolver::Location;
-pub use index::Index;
+pub use config::{Config, ResolverConstraint};
+pub use index::{Area, Category, Index};
 pub use item::{Item, ID};
-pub use mapping::{Destination, Mapping};
+pub use resolver::Location;

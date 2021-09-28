@@ -1,9 +1,9 @@
 use anyhow::{anyhow, Result};
 use clap::Clap;
 
-use johnny::{Destination, Index, JohnnyDecimal, Mapping};
+use johnny::JohnnyDecimal;
 
-use super::Config;
+use super::{json, JCommand};
 
 #[derive(Clap)]
 pub struct SearchCommand {
@@ -23,8 +23,8 @@ pub struct SearchCommand {
     category: Option<usize>,
 }
 
-impl SearchCommand {
-    pub fn run(self, jd: JohnnyDecimal) -> Result<()> {
+impl JCommand for SearchCommand {
+    fn run(&self, jd: JohnnyDecimal) -> Result<()> {
         let mut last_area_name = String::default();
         let mut last_category_name = String::default();
 
@@ -69,6 +69,20 @@ impl SearchCommand {
                 println!("    - {}", result);
             }
         }
+        Ok(())
+    }
+
+    fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
+        let hits = jd.index.search(&self.expr);
+        let viewer = json::Viewer::new(&jd);
+
+        let views = hits
+            .iter()
+            .map(|x| viewer.item(x))
+            .collect::<Result<Vec<_>>>()?;
+
+        println!("{}", serde_json::to_string(&views)?);
+
         Ok(())
     }
 }

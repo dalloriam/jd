@@ -1,6 +1,6 @@
 use std::{fmt::Display, str::FromStr};
 
-use anyhow::{ensure, anyhow};
+use anyhow::{anyhow, ensure};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -23,7 +23,7 @@ impl FromStr for ID {
         let category = category.parse::<usize>()?;
         let id = item_id.parse::<usize>()?;
 
-        ensure!(category < 10, "invalid category");
+        ensure!(category < 100, "invalid category");
         ensure!(id < 1000, "invalid item ID");
 
         Ok(ID { category, id })

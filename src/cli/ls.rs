@@ -3,25 +3,75 @@ use clap::Clap;
 
 use johnny::JohnnyDecimal;
 
+use super::{json, JCommand};
+
 #[derive(Clap)]
 pub struct LsCommand {
-    category: usize,
+    category: Option<usize>,
+
+    #[clap(long = "names")]
+    show_names: bool,
 }
 
-impl LsCommand {
-    pub fn run(self, jd: JohnnyDecimal) -> Result<()> {
-        let area = jd
-            .index
-            .get_area_from_category(self.category)?
-            .ok_or_else(|| anyhow!("area does not exist"))?;
+impl JCommand for LsCommand {
+    fn run(&self, jd: JohnnyDecimal) -> Result<()> {
+        for area in jd.index.list_areas() {
+            if let Some(cat_filter) = self.category {
+                if cat_filter / 10 != area.bounds.0 / 10 {
+                    continue;
+                }
+            }
 
-        let category = area
-            .get_category(self.category)?
-            .ok_or_else(|| anyhow!("category does not exist"))?;
+            println!("{}", area);
 
-        for val in category.list_items() {
-            println!("{}", val);
+            for category in area.list_categories() {
+                if let Some(cat_filter) = self.category {
+                    if cat_filter != category.id {
+                        continue;
+                    }
+                }
+
+                println!("  {}", category);
+
+                if self.show_names {
+                    for item in category.list_items() {
+                        println!("    {}", item);
+                    }
+                }
+            }
         }
+
+        Ok(())
+    }
+
+    fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
+        let viewer = json::Viewer::new(&jd);
+
+        let mut views = Vec::new();
+
+        // TODO: Respect show-names parameter
+
+        for area in jd.index.list_areas() {
+            if let Some(cat_filter) = self.category {
+                if cat_filter / 10 != area.bounds.0 / 10 {
+                    continue;
+                }
+            }
+
+            for category in area.list_categories() {
+                if let Some(cat_filter) = self.category {
+                    if cat_filter != category.id {
+                        continue;
+                    }
+                }
+
+                for item in category.list_items() {
+                    views.push(viewer.item(&item)?);
+                }
+            }
+        }
+
+        println!("{}", serde_json::to_string(&views)?);
 
         Ok(())
     }

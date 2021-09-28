@@ -26,3 +26,5 @@ pub trait LocationResolver {
     fn set(&self, item: &Item, src_location: Location, index: &Index) -> Result<()>;
     fn remove(&self, id: &Item, index: &Index) -> Result<()>;
 }
+
+pub use disk::DiskResolver;
