@@ -59,7 +59,8 @@ impl Category {
 
     pub fn add_item(&mut self, name: &str) -> Result<Item> {
         for id in 1..1000 {
-            if self.items.get(id).is_some() {
+            if self.items.get(id).unwrap().is_some() {
+                // Unwrap safe b/c we know we're withing range for sure.
                 continue;
             }
 

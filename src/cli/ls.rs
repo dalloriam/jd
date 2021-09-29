@@ -22,7 +22,7 @@ impl JCommand for LsCommand {
                 }
             }
 
-            println!("{}", area);
+            bunt::println!("[{[bold + blue]:}]", area);
 
             for category in area.list_categories() {
                 if let Some(cat_filter) = self.category {
@@ -33,7 +33,7 @@ impl JCommand for LsCommand {
 
                 println!("  {}", category);
 
-                if self.show_names {
+                if self.show_names || self.category.is_some() {
                     for item in category.list_items() {
                         println!("    {}", item);
                     }

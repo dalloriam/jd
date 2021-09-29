@@ -1,14 +1,14 @@
-mod categories;
 mod init;
 mod json;
 mod locate;
 mod ls;
+mod mkarea;
 mod mkcat;
 mod mv;
 mod open;
+mod relocate;
 mod rm;
 mod search;
-//mod validate;
 
 use anyhow::Result;
 
@@ -25,7 +25,7 @@ pub struct Root {
     json: bool,
 
     #[clap(subcommand)]
-    command: Command,
+    command: Cmd,
 }
 
 pub trait JCommand {
@@ -38,56 +38,112 @@ impl Root {
         let cfg = Config::load()?;
         let client = JohnnyDecimal::new(cfg)?;
 
-        let cmd: Box<dyn JCommand> = match self.command {
-            Command::Categories(cmd) => Box::new(cmd),
-            Command::Init(cmd) => Box::new(cmd),
-            Command::Locate(cmd) => Box::new(cmd),
-            Command::Ls(cmd) => Box::new(cmd),
-            Command::MkCat(cmd) => Box::new(cmd),
-            Command::Move(cmd) => Box::new(cmd),
-            Command::Open(cmd) => Box::new(cmd),
-            Command::Rm(cmd) => Box::new(cmd),
-            Command::Search(cmd) => Box::new(cmd),
-            //Command::Validate(cmd) => cmd.run(client),
-        };
-
         if self.json {
-            cmd.run_json(client)
+            self.command.run_json(client)
         } else {
-            cmd.run(client)
+            self.command.run(client)
         }
     }
 }
 
 #[derive(Clap)]
-pub enum Command {
-    /// List categories.
-    Categories(categories::CategoriesCommand),
+pub enum CategoryCmd {
+    #[clap(name = "new")]
+    Create(mkcat::MkCatCommand),
+}
 
-    /// Initialize an index.
-    Init(init::InitCommand),
+impl JCommand for CategoryCmd {
+    fn run(&self, jd: JohnnyDecimal) -> Result<()> {
+        match self {
+            CategoryCmd::Create(cmd) => cmd.run(jd),
+        }
+    }
 
-    /// Locate an ID.
-    Locate(locate::LocateCommand),
+    fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
+        match self {
+            CategoryCmd::Create(cmd) => cmd.run_json(jd),
+        }
+    }
+}
 
-    /// List entries in a category.
-    Ls(ls::LsCommand),
+#[derive(Clap)]
+pub enum ItemCmd {
+    #[clap(name = "add_file")]
+    AddFile(mv::MoveCommand),
 
-    /// Make a category.
-    #[clap(name = "mkcat")]
-    MkCat(mkcat::MkCatCommand),
-
-    /// Move a directory in the system.
-    #[clap(name = "mv")]
-    Move(mv::MoveCommand),
-
-    /// Open a directory using the system defaults.
+    #[clap(name = "open")]
     Open(open::OpenCommand),
 
-    #[clap(name = "rm")]
-    Rm(rm::RmCommand),
+    #[clap(name = "mv")]
+    Move(relocate::RelocateCommand),
 
-    /// Search in the index.
+    #[clap(name = "rm")]
+    Remove(rm::RmCommand),
+}
+
+impl JCommand for ItemCmd {
+    fn run(&self, jd: JohnnyDecimal) -> Result<()> {
+        match self {
+            ItemCmd::AddFile(cmd) => cmd.run(jd),
+            ItemCmd::Open(cmd) => cmd.run(jd),
+            ItemCmd::Move(cmd) => cmd.run(jd),
+            ItemCmd::Remove(cmd) => cmd.run(jd),
+        }
+    }
+
+    fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
+        match self {
+            ItemCmd::AddFile(cmd) => cmd.run_json(jd),
+            ItemCmd::Open(cmd) => cmd.run_json(jd),
+            ItemCmd::Move(cmd) => cmd.run_json(jd),
+            ItemCmd::Remove(cmd) => cmd.run_json(jd),
+        }
+    }
+}
+
+#[derive(Clap)]
+pub enum Cmd {
+    #[clap(name = "init")]
+    Init(init::InitCommand),
+
+    #[clap(name = "ls")]
+    List(ls::LsCommand),
+
+    #[clap(name = "search")]
     Search(search::SearchCommand),
-    //Validate(validate::ValidateCommand),
+
+    /// Open an ID.
+    Open(open::OpenCommand),
+
+    #[clap(subcommand)]
+    #[clap(name = "cat")]
+    Categories(CategoryCmd),
+
+    #[clap(subcommand)]
+    #[clap(name = "item")]
+    Item(ItemCmd),
+}
+
+impl JCommand for Cmd {
+    fn run(&self, jd: JohnnyDecimal) -> Result<()> {
+        match self {
+            Cmd::Init(cmd) => cmd.run(jd),
+            Cmd::List(cmd) => cmd.run(jd),
+            Cmd::Open(cmd) => cmd.run(jd),
+            Cmd::Search(cmd) => cmd.run(jd),
+            Cmd::Categories(cmd) => cmd.run(jd),
+            Cmd::Item(cmd) => cmd.run(jd),
+        }
+    }
+
+    fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
+        match self {
+            Cmd::Init(cmd) => cmd.run_json(jd),
+            Cmd::List(cmd) => cmd.run_json(jd),
+            Cmd::Open(cmd) => cmd.run_json(jd),
+            Cmd::Search(cmd) => cmd.run_json(jd),
+            Cmd::Categories(cmd) => cmd.run_json(jd),
+            Cmd::Item(cmd) => cmd.run_json(jd),
+        }
+    }
 }

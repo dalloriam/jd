@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
+use rayon::current_thread_index;
 
 use crate::config::ResolverConfig;
 use crate::resolver::DiskResolver;
@@ -68,6 +69,56 @@ impl JohnnyDecimal {
         let src_location = Location::Path(PathBuf::from(source_path));
 
         resolver.set(&item, src_location, &self.index)?;
+
+        Ok(item)
+    }
+
+    pub fn relocate(&mut self, id: &ID, category: usize) -> Result<Item> {
+        let item = {
+            let current_area = self
+                .index
+                .get_area_from_category_mut(id.category)?
+                .ok_or_else(|| anyhow!("missing area"))?;
+
+            let current_category = current_area
+                .get_category_mut(id.category)?
+                .ok_or_else(|| anyhow!("missing area"))?;
+
+            let item = current_category
+                .get_item(id)?
+                .ok_or_else(|| anyhow!("missing item"))?;
+
+            current_category.remove_item(id)?;
+            item
+        };
+
+        let src_resolver = self
+            .find_resolver(id.category)
+            .ok_or_else(|| anyhow!("no resolver for category: {}", id.category))?;
+
+        let src_path = src_resolver
+            .get(&item, &self.index)?
+            .ok_or_else(|| anyhow!("source file not found"))?;
+
+        let tgt_area = self
+            .index
+            .get_area_from_category_mut(category)?
+            .ok_or_else(|| anyhow!("missing area"))?;
+
+        let tgt_category = tgt_area
+            .get_category_mut(category)?
+            .ok_or_else(|| anyhow!("missing area"))?;
+
+        let item = tgt_category.add_item(&item.name)?;
+
+        // Now that the index is updated we need to move the files.
+        let dst_resolver = self
+            .find_resolver(category)
+            .ok_or_else(|| anyhow!("no resolver for category: {}", category))?;
+        dst_resolver.set(&item, src_path, &self.index)?;
+
+        // Now we save.
+        self.save()?;
 
         Ok(item)
     }

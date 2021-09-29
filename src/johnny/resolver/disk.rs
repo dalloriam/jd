@@ -191,7 +191,9 @@ impl LocationResolver for DiskResolver {
         if let Some(loc) = self.get(id, index)? {
             match loc {
                 Location::Path(p) => {
-                    fs::remove_dir_all(p)?;
+                    if p.exists() {
+                        fs::remove_dir_all(p)?;
+                    }
                 }
                 Location::URL(u) => {
                     bail!("incoherent location: {}", u);

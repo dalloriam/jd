@@ -1,4 +1,5 @@
 mod disk;
+mod github;
 
 use std::fmt::Display;
 use std::path::PathBuf;
@@ -14,7 +15,7 @@ pub enum Location {
 impl Display for Location {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Location::Path(p) => write!(f, "{:?}", p),
+            Location::Path(p) => write!(f, "{}", p.to_string_lossy().to_string()),
             Location::URL(u) => write!(f, "{}", u),
         }
     }
