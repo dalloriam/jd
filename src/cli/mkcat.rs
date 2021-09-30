@@ -20,12 +20,17 @@ impl JCommand for MkCatCommand {
 
         area.create_category(self.category, self.name.clone())?;
 
-        jd.save()?;
-
-        Ok(())
+        jd.save()
     }
 
-    fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
-        unimplemented!()
+    fn run_json(&self, mut jd: JohnnyDecimal) -> Result<()> {
+        let area = jd
+            .index
+            .get_area_from_category_mut(self.category)?
+            .ok_or_else(|| anyhow!("area does not exist"))?;
+
+        area.create_category(self.category, self.name.clone())?;
+
+        jd.save()
     }
 }

@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 
-use johnny::{Area, Category, Item, JohnnyDecimal};
+use johnny::{Category, Item, JohnnyDecimal};
 
 use serde::Serialize;
 

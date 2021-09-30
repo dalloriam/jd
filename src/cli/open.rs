@@ -10,8 +10,8 @@ pub struct OpenCommand {
     id: String,
 }
 
-impl JCommand for OpenCommand {
-    fn run(&self, jd: JohnnyDecimal) -> Result<()> {
+impl OpenCommand {
+    pub fn open(&self, jd: JohnnyDecimal) -> Result<()> {
         let id = self.id.parse::<ID>()?;
         if let Some(location) = jd.locate(&id)? {
             match location {
@@ -22,8 +22,14 @@ impl JCommand for OpenCommand {
 
         Ok(())
     }
+}
+
+impl JCommand for OpenCommand {
+    fn run(&self, jd: JohnnyDecimal) -> Result<()> {
+        self.open(jd)
+    }
 
     fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
-        unimplemented!()
+        self.open(jd)
     }
 }

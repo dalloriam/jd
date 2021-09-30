@@ -6,8 +6,12 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 
+use serde::{Deserialize, Serialize};
+
 use crate::{Index, Item};
 
+#[derive(Deserialize, Serialize)]
+#[serde(untagged)]
 pub enum Location {
     Path(PathBuf),
     URL(String),
@@ -26,6 +30,8 @@ pub trait LocationResolver {
     fn collect(&self, index: &mut Index) -> Result<()>;
     fn set(&self, item: &Item, src_location: Location, index: &Index) -> Result<()>;
     fn remove(&self, id: &Item, index: &Index) -> Result<()>;
+    fn rename_category(&self, category: usize, new_name: &str, index: &Index) -> Result<()>;
 }
 
 pub use disk::DiskResolver;
+pub use github::GithubResolver;

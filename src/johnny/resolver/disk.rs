@@ -91,13 +91,13 @@ impl DiskResolver {
         Ok(())
     }
 
-    fn get_category_path(&self, item: &Item, index: &Index) -> Result<PathBuf> {
+    fn get_category_path(&self, category: usize, index: &Index) -> Result<PathBuf> {
         let area = index
-            .get_area_from_category(item.id.category)?
+            .get_area_from_category(category)?
             .ok_or_else(|| anyhow!("missing area"))?;
 
         let category = area
-            .get_category(item.id.category)?
+            .get_category(category)?
             .ok_or_else(|| anyhow!("missing category"))?;
 
         let category_path = self
@@ -111,7 +111,7 @@ impl DiskResolver {
 
 impl LocationResolver for DiskResolver {
     fn get(&self, item: &Item, index: &Index) -> Result<Option<Location>> {
-        let category_path = self.get_category_path(item, index)?;
+        let category_path = self.get_category_path(item.id.category, index)?;
         if !category_path.exists() {
             return Ok(None);
         }
@@ -164,7 +164,7 @@ impl LocationResolver for DiskResolver {
     }
 
     fn set(&self, item: &Item, src_location: Location, index: &Index) -> Result<()> {
-        let category_path = self.get_category_path(item, index)?;
+        let category_path = self.get_category_path(item.id.category, index)?;
         if !category_path.exists() {
             fs::create_dir_all(&category_path)?;
         }
@@ -200,6 +200,29 @@ impl LocationResolver for DiskResolver {
                 }
             }
         }
+
+        Ok(())
+    }
+
+    fn rename_category(&self, category: usize, new_name: &str, index: &Index) -> Result<()> {
+        let old_path = self.get_category_path(category, index)?;
+
+        let area = index
+            .get_area_from_category(category)?
+            .ok_or_else(|| anyhow!("missing area"))?;
+
+        let new_category = Category::new(category, String::from(new_name));
+
+        let new_path = self
+            .root_path
+            .join(PathBuf::from(format!("{}", area)))
+            .join(PathBuf::from(format!("{}", new_category)));
+
+        let options = CopyOptions {
+            copy_inside: true,
+            ..Default::default()
+        };
+        fs_extra::dir::move_dir(old_path, new_path, &options)?;
 
         Ok(())
     }

@@ -19,7 +19,9 @@ impl JCommand for RelocateCommand {
         Ok(())
     }
 
-    fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
-        unimplemented!()
+    fn run_json(&self, mut jd: JohnnyDecimal) -> Result<()> {
+        let id = self.item.parse::<ID>()?;
+        jd.relocate(&id, self.category)?;
+        Ok(())
     }
 }

@@ -8,26 +8,24 @@ use johnny::JohnnyDecimal;
 use super::JCommand;
 
 #[derive(Clap)]
-pub struct MoveCommand {
+pub struct AddURLCommand {
     #[clap(long = "category", short = 'c')]
     category: usize,
 
-    files: Vec<PathBuf>,
+    name: String,
+
+    url: String,
 }
 
-impl JCommand for MoveCommand {
+impl JCommand for AddURLCommand {
     fn run(&self, mut jd: JohnnyDecimal) -> Result<()> {
-        for f in self.files.iter() {
-            let item = jd.mv(self.category, &f)?;
-            println!("{}", item);
-        }
+        let item = jd.alloc_url(self.category, &self.name, &self.url)?;
+        println!("{}", item);
         Ok(())
     }
 
     fn run_json(&self, mut jd: JohnnyDecimal) -> Result<()> {
-        for f in self.files.iter() {
-            jd.mv(self.category, &f)?;
-        }
+        jd.alloc_url(self.category, &self.name, &self.url)?;
         Ok(())
     }
 }

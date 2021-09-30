@@ -2,10 +2,9 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
-use rayon::current_thread_index;
 
 use crate::config::ResolverConfig;
-use crate::resolver::DiskResolver;
+use crate::resolver::{DiskResolver, GithubResolver};
 use crate::{Config, Index, Item, Location, LocationResolver, ResolverConstraint, ID};
 
 pub struct JohnnyDecimal {
@@ -24,6 +23,9 @@ impl JohnnyDecimal {
             let r: Arc<Box<dyn LocationResolver>> = match &resolver.config {
                 ResolverConfig::DiskResolver { root } => {
                     Arc::new(Box::from(DiskResolver::new(root.clone())))
+                }
+                &ResolverConfig::GithubResolver { github_area } => {
+                    Arc::new(Box::from(GithubResolver::new(github_area)))
                 }
             };
             resolvers.push((resolver.constraint.clone(), r));
@@ -69,6 +71,29 @@ impl JohnnyDecimal {
         let src_location = Location::Path(PathBuf::from(source_path));
 
         resolver.set(&item, src_location, &self.index)?;
+
+        Ok(item)
+    }
+
+    pub fn alloc_url(&mut self, category: usize, name: &str, url: &str) -> Result<Item> {
+        let resolver = self
+            .find_resolver(category)
+            .ok_or_else(|| anyhow!("no resolver for category: {}", category))?;
+
+        let area = self
+            .index
+            .get_area_from_category_mut(category)?
+            .ok_or_else(|| anyhow!("missing area"))?;
+
+        let category = area
+            .get_category_mut(category)?
+            .ok_or_else(|| anyhow!("missing category"))?;
+
+        let item = category.add_item(name)?;
+
+        resolver.set(&item, Location::URL(String::from(url)), &self.index)?;
+
+        self.save()?;
 
         Ok(item)
     }
@@ -187,6 +212,31 @@ impl JohnnyDecimal {
         for (_, resolver) in self.resolvers.iter() {
             resolver.collect(&mut self.index)?;
         }
+
+        self.save()?;
+
+        Ok(())
+    }
+
+    pub fn rename_category(&mut self, category: usize, new_name: &str) -> Result<()> {
+        {
+            let resolver = self
+                .find_resolver(category)
+                .ok_or_else(|| anyhow!("no resolver for category: {}", category))?;
+
+            resolver.rename_category(category, new_name, &self.index)?;
+        }
+
+        let area = self
+            .index
+            .get_area_from_category_mut(category)?
+            .ok_or_else(|| anyhow!("missing area"))?;
+
+        let cat = area
+            .get_category_mut(category)?
+            .ok_or_else(|| anyhow!("missing category"))?;
+
+        cat.name = String::from(new_name);
 
         self.save()?;
 

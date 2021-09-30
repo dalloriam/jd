@@ -7,17 +7,17 @@ use super::JCommand;
 
 #[derive(Clap)]
 pub struct RmCommand {
-    id: String,
+    id: ID,
 }
 
 impl JCommand for RmCommand {
     fn run(&self, mut jd: JohnnyDecimal) -> Result<()> {
-        let id = self.id.parse::<ID>()?;
-        jd.rm(&id)?;
+        jd.rm(&self.id)?;
         Ok(())
     }
 
-    fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
-        unimplemented!()
+    fn run_json(&self, mut jd: JohnnyDecimal) -> Result<()> {
+        jd.rm(&self.id)?;
+        Ok(())
     }
 }

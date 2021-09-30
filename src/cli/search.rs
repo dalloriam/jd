@@ -10,10 +10,6 @@ pub struct SearchCommand {
     /// The string to search for.
     expr: String,
 
-    /// Whether to locate the search results.
-    #[clap(long = "locate", short = 'l')]
-    locate: bool,
-
     /// An optional area restriction.
     #[clap(long = "area", short = 'a')]
     area: Option<usize>,
@@ -51,23 +47,17 @@ impl JCommand for SearchCommand {
                 .get_category(result.id.category)?
                 .ok_or_else(|| anyhow!("missing category"))?;
 
-            if !self.locate && area.name != last_area_name {
-                println!("- {:02}-{:02} {}", area.bounds.0, area.bounds.1, area.name);
+            if area.name != last_area_name {
+                bunt::println!("[{[blue + bold]:}]", area);
                 last_area_name = area.name.clone();
             }
 
-            if !self.locate && category.name != last_category_name {
-                println!("  - {} {}", category.id, category.name);
+            if category.name != last_category_name {
+                bunt::println!("  {[green]:}", category);
                 last_category_name = category.name.clone();
             }
 
-            if self.locate {
-                if let Some(loc) = jd.locate(&result.id)? {
-                    println!("{}", loc);
-                }
-            } else {
-                println!("    - {}", result);
-            }
+            println!("    {}", result);
         }
         Ok(())
     }

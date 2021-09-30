@@ -20,7 +20,8 @@ impl JCommand for InitCommand {
         Ok(())
     }
 
-    fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
-        unimplemented!()
+    fn run_json(&self, mut jd: JohnnyDecimal) -> Result<()> {
+        jd.rebuild()?;
+        Ok(())
     }
 }

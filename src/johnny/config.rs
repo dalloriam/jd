@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 #[serde(untagged)]
 pub enum ResolverConfig {
     DiskResolver { root: PathBuf },
+    GithubResolver { github_area: usize },
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

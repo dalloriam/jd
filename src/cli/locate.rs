@@ -8,19 +8,21 @@ use super::JCommand;
 #[derive(Clap)]
 pub struct LocateCommand {
     /// The AC.ID code to search for.
-    id: String,
+    id: ID,
 }
 
 impl JCommand for LocateCommand {
     fn run(&self, jd: JohnnyDecimal) -> Result<()> {
-        let id = self.id.parse::<ID>()?;
-        if let Some(loc) = jd.locate(&id)? {
+        if let Some(loc) = jd.locate(&self.id)? {
             println!("{}", loc);
         }
         Ok(())
     }
 
     fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
-        unimplemented!()
+        if let Some(loc) = jd.locate(&self.id)? {
+            println!("{}", serde_json::to_string(&loc)?);
+        }
+        Ok(())
     }
 }

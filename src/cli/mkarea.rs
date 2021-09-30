@@ -29,7 +29,13 @@ impl JCommand for MkAreaCommand {
         Ok(())
     }
 
-    fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
-        unimplemented!()
+    fn run_json(&self, mut jd: JohnnyDecimal) -> Result<()> {
+        let lower_bound = (self.area / 10) * 10;
+        let upper_bound = lower_bound + 9;
+
+        jd.index
+            .create_area((lower_bound, upper_bound), &self.name)?;
+
+        jd.save()
     }
 }

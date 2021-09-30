@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use clap::Clap;
 
 use johnny::JohnnyDecimal;
@@ -8,9 +8,21 @@ use super::{json, JCommand};
 #[derive(Clap)]
 pub struct LsCommand {
     category: Option<usize>,
+}
 
-    #[clap(long = "names")]
-    show_names: bool,
+impl LsCommand {
+    fn json_list_categories(&self, jd: JohnnyDecimal) -> Result<()> {
+        let viewer = json::Viewer::new(&jd);
+        let mut views = Vec::new();
+        for area in jd.index.list_areas() {
+            for category in area.list_categories() {
+                views.push(viewer.category(&category));
+            }
+        }
+
+        println!("{}", serde_json::to_string(&views)?);
+        Ok(())
+    }
 }
 
 impl JCommand for LsCommand {
@@ -31,9 +43,9 @@ impl JCommand for LsCommand {
                     }
                 }
 
-                println!("  {}", category);
+                bunt::println!("  {[green]}", category);
 
-                if self.show_names || self.category.is_some() {
+                if self.category.is_some() {
                     for item in category.list_items() {
                         println!("    {}", item);
                     }
@@ -45,33 +57,31 @@ impl JCommand for LsCommand {
     }
 
     fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
-        let viewer = json::Viewer::new(&jd);
+        if let Some(cat_filter) = self.category {
+            let viewer = json::Viewer::new(&jd);
 
-        let mut views = Vec::new();
+            let mut views = Vec::new();
 
-        // TODO: Respect show-names parameter
-
-        for area in jd.index.list_areas() {
-            if let Some(cat_filter) = self.category {
+            for area in jd.index.list_areas() {
                 if cat_filter / 10 != area.bounds.0 / 10 {
                     continue;
                 }
-            }
 
-            for category in area.list_categories() {
-                if let Some(cat_filter) = self.category {
+                for category in area.list_categories() {
                     if cat_filter != category.id {
                         continue;
                     }
-                }
 
-                for item in category.list_items() {
-                    views.push(viewer.item(&item)?);
+                    for item in category.list_items() {
+                        views.push(viewer.item(&item)?);
+                    }
                 }
             }
-        }
 
-        println!("{}", serde_json::to_string(&views)?);
+            println!("{}", serde_json::to_string(&views)?);
+        } else {
+            self.json_list_categories(jd)?;
+        }
 
         Ok(())
     }

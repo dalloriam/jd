@@ -1,3 +1,5 @@
+mod addurl;
+mod cat_rename;
 mod init;
 mod json;
 mod locate;
@@ -14,7 +16,7 @@ use anyhow::Result;
 
 use clap::Clap;
 
-use johnny::{Config, JohnnyDecimal};
+use johnny::{Area, Config, JohnnyDecimal};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -50,18 +52,23 @@ impl Root {
 pub enum CategoryCmd {
     #[clap(name = "new")]
     Create(mkcat::MkCatCommand),
+
+    #[clap(name = "rename")]
+    Rename(cat_rename::CatRename),
 }
 
 impl JCommand for CategoryCmd {
     fn run(&self, jd: JohnnyDecimal) -> Result<()> {
         match self {
             CategoryCmd::Create(cmd) => cmd.run(jd),
+            CategoryCmd::Rename(cmd) => cmd.run(jd),
         }
     }
 
     fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
         match self {
             CategoryCmd::Create(cmd) => cmd.run_json(jd),
+            CategoryCmd::Rename(cmd) => cmd.run_json(jd),
         }
     }
 }
@@ -71,11 +78,17 @@ pub enum ItemCmd {
     #[clap(name = "add_file")]
     AddFile(mv::MoveCommand),
 
+    #[clap(name = "add_url")]
+    AddURL(addurl::AddURLCommand),
+
     #[clap(name = "open")]
     Open(open::OpenCommand),
 
     #[clap(name = "mv")]
     Move(relocate::RelocateCommand),
+
+    #[clap(name = "find")]
+    Locate(locate::LocateCommand),
 
     #[clap(name = "rm")]
     Remove(rm::RmCommand),
@@ -85,8 +98,10 @@ impl JCommand for ItemCmd {
     fn run(&self, jd: JohnnyDecimal) -> Result<()> {
         match self {
             ItemCmd::AddFile(cmd) => cmd.run(jd),
+            ItemCmd::AddURL(cmd) => cmd.run(jd),
             ItemCmd::Open(cmd) => cmd.run(jd),
             ItemCmd::Move(cmd) => cmd.run(jd),
+            ItemCmd::Locate(cmd) => cmd.run(jd),
             ItemCmd::Remove(cmd) => cmd.run(jd),
         }
     }
@@ -94,15 +109,36 @@ impl JCommand for ItemCmd {
     fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
         match self {
             ItemCmd::AddFile(cmd) => cmd.run_json(jd),
+            ItemCmd::AddURL(cmd) => cmd.run_json(jd),
             ItemCmd::Open(cmd) => cmd.run_json(jd),
             ItemCmd::Move(cmd) => cmd.run_json(jd),
+            ItemCmd::Locate(cmd) => cmd.run_json(jd),
             ItemCmd::Remove(cmd) => cmd.run_json(jd),
         }
     }
 }
 
 #[derive(Clap)]
-pub enum Cmd {
+enum AreaCmd {
+    New(mkarea::MkAreaCommand),
+}
+
+impl JCommand for AreaCmd {
+    fn run(&self, jd: JohnnyDecimal) -> Result<()> {
+        match self {
+            AreaCmd::New(cmd) => cmd.run(jd),
+        }
+    }
+
+    fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
+        match self {
+            AreaCmd::New(cmd) => cmd.run_json(jd),
+        }
+    }
+}
+
+#[derive(Clap)]
+enum Cmd {
     #[clap(name = "init")]
     Init(init::InitCommand),
 
@@ -114,6 +150,10 @@ pub enum Cmd {
 
     /// Open an ID.
     Open(open::OpenCommand),
+
+    #[clap(subcommand)]
+    #[clap(name = "area")]
+    Areas(AreaCmd),
 
     #[clap(subcommand)]
     #[clap(name = "cat")]
@@ -131,6 +171,7 @@ impl JCommand for Cmd {
             Cmd::List(cmd) => cmd.run(jd),
             Cmd::Open(cmd) => cmd.run(jd),
             Cmd::Search(cmd) => cmd.run(jd),
+            Cmd::Areas(cmd) => cmd.run(jd),
             Cmd::Categories(cmd) => cmd.run(jd),
             Cmd::Item(cmd) => cmd.run(jd),
         }
@@ -142,6 +183,7 @@ impl JCommand for Cmd {
             Cmd::List(cmd) => cmd.run_json(jd),
             Cmd::Open(cmd) => cmd.run_json(jd),
             Cmd::Search(cmd) => cmd.run_json(jd),
+            Cmd::Areas(cmd) => cmd.run_json(jd),
             Cmd::Categories(cmd) => cmd.run_json(jd),
             Cmd::Item(cmd) => cmd.run_json(jd),
         }
