@@ -10,7 +10,7 @@ use crate::{Config, Index, Item, Location, LocationResolver, ResolverConstraint,
 pub struct JohnnyDecimal {
     config: Config,
     pub index: Box<Index>,
-    resolvers: Vec<(ResolverConstraint, Arc<Box<dyn LocationResolver>>)>,
+    resolvers: Vec<(ResolverConstraint, Arc<dyn LocationResolver>)>,
 }
 
 impl JohnnyDecimal {
@@ -20,12 +20,10 @@ impl JohnnyDecimal {
         let mut resolvers = Vec::new();
         for resolver in config.resolvers.iter() {
             // TODO: Detect resolver conflict
-            let r: Arc<Box<dyn LocationResolver>> = match &resolver.config {
-                ResolverConfig::DiskResolver { root } => {
-                    Arc::new(Box::from(DiskResolver::new(root.clone())))
-                }
+            let r: Arc<dyn LocationResolver> = match &resolver.config {
+                ResolverConfig::DiskResolver { root } => Arc::new(DiskResolver::new(root.clone())),
                 &ResolverConfig::GithubResolver { github_area } => {
-                    Arc::new(Box::from(GithubResolver::new(github_area)))
+                    Arc::new(GithubResolver::new(github_area))
                 }
             };
             resolvers.push((resolver.constraint.clone(), r));
@@ -38,7 +36,7 @@ impl JohnnyDecimal {
         })
     }
 
-    fn find_resolver(&self, category: usize) -> Option<Arc<Box<dyn LocationResolver>>> {
+    fn find_resolver(&self, category: usize) -> Option<Arc<dyn LocationResolver>> {
         self.resolvers
             .iter()
             .find(|(c, _r)| c.matches(category))
