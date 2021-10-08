@@ -57,27 +57,41 @@ impl Category {
         Self { id, name, items }
     }
 
-    pub fn add_item(&mut self, name: &str) -> Result<Item> {
-        for id in 1..1000 {
-            if self.items.get(id).unwrap().is_some() {
-                // Unwrap safe b/c we know we're withing range for sure.
-                continue;
+    pub fn add_item(&mut self, name: &str, id: Option<&ID>) -> Result<Item> {
+        match id {
+            Some(i) => {
+                ensure!(i.id < 1000, "id is too large.");
+                ensure!(i.category == self.id, "wrong category");
+                ensure!(self.items[i.id].is_none(), "ID is taken");
+
+                let item = Item {
+                    id: i.clone(),
+                    name: String::from(name),
+                };
+                self.import_item(item)
             }
+            None => {
+                for id in 1..1000 {
+                    if self.items[id].is_some() {
+                        continue;
+                    }
 
-            let id = ID {
-                category: self.id,
-                id,
-            };
+                    let id = ID {
+                        category: self.id,
+                        id,
+                    };
 
-            let item = Item {
-                id,
-                name: String::from(name),
-            };
+                    let item = Item {
+                        id,
+                        name: String::from(name),
+                    };
 
-            return self.import_item(item);
+                    return self.import_item(item);
+                }
+
+                bail!("no more available IDs");
+            }
         }
-
-        bail!("no more available IDs");
     }
 
     pub fn import_item(&mut self, item: Item) -> Result<Item> {

@@ -16,7 +16,7 @@ impl LsCommand {
         let mut views = Vec::new();
         for area in jd.index.list_areas() {
             for category in area.list_categories() {
-                views.push(viewer.category(&category));
+                views.push(viewer.category(category));
             }
         }
 

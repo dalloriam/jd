@@ -46,7 +46,7 @@ impl JohnnyDecimal {
             .cloned()
     }
 
-    pub fn mv(&mut self, category: usize, source_path: &Path) -> Result<Item> {
+    pub fn mv(&mut self, category: usize, source_path: &Path, id: Option<&ID>) -> Result<Item> {
         let resolver = self
             .find_resolver(category)
             .ok_or_else(|| anyhow!("no resolver for category: {}", category))?;
@@ -65,7 +65,7 @@ impl JohnnyDecimal {
             .unwrap()
             .to_string_lossy()
             .to_string();
-        let item = category.add_item(&name)?;
+        let item = category.add_item(&name, id)?;
         self.save()?;
 
         let src_location = Location::Path(PathBuf::from(source_path));
@@ -89,7 +89,7 @@ impl JohnnyDecimal {
             .get_category_mut(category)?
             .ok_or_else(|| anyhow!("missing category"))?;
 
-        let item = category.add_item(name)?;
+        let item = category.add_item(name, None)?;
 
         resolver.set(&item, Location::URL(String::from(url)), &self.index)?;
 
@@ -134,7 +134,7 @@ impl JohnnyDecimal {
             .get_category_mut(category)?
             .ok_or_else(|| anyhow!("missing area"))?;
 
-        let item = tgt_category.add_item(&item.name)?;
+        let item = tgt_category.add_item(&item.name, None)?;
 
         // Now that the index is updated we need to move the files.
         let dst_resolver = self

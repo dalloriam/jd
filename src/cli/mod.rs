@@ -16,7 +16,7 @@ use anyhow::Result;
 
 use clap::Clap;
 
-use johnny::{Area, Config, JohnnyDecimal};
+use johnny::{Config, JohnnyDecimal};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 

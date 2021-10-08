@@ -54,23 +54,23 @@ impl LocationResolver for GithubResolver {
         ))))
     }
 
-    fn collect(&self, index: &mut Index) -> Result<()> {
+    fn collect(&self, _index: &mut Index) -> Result<()> {
         // TODO: Implement
         Ok(())
     }
 
-    fn set(&self, item: &Item, src_location: Location, index: &Index) -> Result<()> {
+    fn set(&self, _item: &Item, _src_location: Location, _index: &Index) -> Result<()> {
         // Nothing to do here, content is in the cloud.
         Ok(())
     }
 
-    fn remove(&self, id: &Item, index: &Index) -> Result<()> {
+    fn remove(&self, _id: &Item, _index: &Index) -> Result<()> {
         // TODO: Remove repo on disk.
         // Obviously we don't want to delete it from github.
-        Ok(())
+        unimplemented!();
     }
 
-    fn rename_category(&self, category: usize, new_name: &str, index: &Index) -> Result<()> {
+    fn rename_category(&self, _category: usize, _new_name: &str, _index: &Index) -> Result<()> {
         // This is unsupported because it would mean renaming the org.
         bail!("unsupported operation");
     }
