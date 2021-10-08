@@ -1,0 +1,47 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  artifacts:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: jd-linux-amd64.exe
+            src: jd
+          - os: macos-latest
+            artifact: jd-macos-amd64.exe
+            src: jd
+          - os: windows-latest
+            artifact: jd-windows-amd64.exe
+            src: jd.exe
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Build/Release
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release
+
+      - name: Prepare Assets
+        run: |
+          mv target/release/${{ matrix.src }} target/release/${{ matrix.artifact }}
+        shell: bash
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            target/release/${{ matrix.artifact }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
