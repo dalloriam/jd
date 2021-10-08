@@ -1,23 +1,27 @@
 use anyhow::Result;
 use clap::Clap;
 
-use johnny::{Destination, Index, Mapping};
+use johnny::{JohnnyDecimal, ID};
 
-use super::Config;
+use super::JCommand;
 
 #[derive(Clap)]
 pub struct LocateCommand {
     /// The AC.ID code to search for.
-    id: String,
+    id: ID,
 }
 
-impl LocateCommand {
-    pub fn run(self, config: Config) -> Result<()> {
-        let index = Index::load(config.index_path)?;
-        let mapping = Mapping::load(config.mapping_path)?;
-        if let Some(dest) = index.locate(&self.id, &mapping) {
-            let Destination::Path(p) = dest;
-            println!("{}", p.to_string_lossy())
+impl JCommand for LocateCommand {
+    fn run(&self, jd: JohnnyDecimal) -> Result<()> {
+        if let Some(loc) = jd.locate(&self.id)? {
+            println!("{}", loc);
+        }
+        Ok(())
+    }
+
+    fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
+        if let Some(loc) = jd.locate(&self.id)? {
+            println!("{}", serde_json::to_string(&loc)?);
         }
         Ok(())
     }

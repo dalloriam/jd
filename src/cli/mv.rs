@@ -1,51 +1,47 @@
 use std::path::PathBuf;
 
-use anyhow::{bail, ensure, Result};
+use anyhow::{bail, Result};
 use clap::Clap;
 
-use fs_extra::dir::CopyOptions;
-use johnny::{Destination, Index, Mapping};
+use johnny::{JohnnyDecimal, ID};
 
-use super::Config;
+use super::JCommand;
 
 #[derive(Clap)]
 pub struct MoveCommand {
     #[clap(long = "category", short = 'c')]
     category: usize,
 
+    #[clap(long = "id")]
+    id: Option<ID>,
+
     files: Vec<PathBuf>,
 }
 
 impl MoveCommand {
-    pub fn run(self, config: Config) -> Result<()> {
-        let mut index = Index::load(&config.index_path)?;
-        let mapping = Mapping::load(&config.mapping_path)?;
-
-        for f in self.files {
-            let name = f.file_name().unwrap().to_string_lossy().to_string();
-            let item = index.alloc_item(self.category, &name)?;
-            println!("{}", item);
-
-            // We need to move our item in the space we allocated for it.
-            if let Some(Destination::Path(p)) =
-                index.locate(&format!("{:02}.{:03}", item.category, item.id), &mapping)
-            {
-                ensure!(f.exists(), "source path {:?} does not exist", f);
-                ensure!(f.is_dir(), "source path {:?} is not a directory", f);
-                ensure!(!p.exists(), "destination path {:?} already exists", p);
-
-                let options = CopyOptions {
-                    copy_inside: true,
-                    ..Default::default()
-                };
-                fs_extra::dir::move_dir(f, p, &options)?;
-            } else {
-                bail!("incoherent allocation");
-            }
-
-            index.save(&config.index_path)?;
+    fn validate_id(&self) -> Result<()> {
+        if self.files.len() > 1 && self.id.is_some() {
+            bail!("cannot specify an ID when uploading more than one file")
         }
+        Ok(())
+    }
+}
 
+impl JCommand for MoveCommand {
+    fn run(&self, mut jd: JohnnyDecimal) -> Result<()> {
+        self.validate_id()?;
+        for f in self.files.iter() {
+            let item = jd.mv(self.category, f, self.id.as_ref())?;
+            println!("{}", item);
+        }
+        Ok(())
+    }
+
+    fn run_json(&self, mut jd: JohnnyDecimal) -> Result<()> {
+        self.validate_id()?;
+        for f in self.files.iter() {
+            jd.mv(self.category, f, self.id.as_ref())?;
+        }
         Ok(())
     }
 }

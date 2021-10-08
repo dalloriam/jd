@@ -1,30 +1,23 @@
-use std::fs;
-
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use clap::Clap;
 
-use johnny::{Destination, Index, Mapping};
+use johnny::{JohnnyDecimal, ID};
 
-use super::Config;
+use super::JCommand;
 
 #[derive(Clap)]
 pub struct RmCommand {
-    id: String,
+    id: ID,
 }
 
-impl RmCommand {
-    pub fn run(self, config: Config) -> Result<()> {
-        let mut index = Index::load(&config.index_path)?;
-        let mapping = Mapping::load(&config.mapping_path)?;
+impl JCommand for RmCommand {
+    fn run(&self, mut jd: JohnnyDecimal) -> Result<()> {
+        jd.rm(&self.id)?;
+        Ok(())
+    }
 
-        let Destination::Path(path) = index
-            .locate(&self.id, &mapping)
-            .ok_or_else(|| anyhow!("missing destination"))?;
-
-        index.rm(&self.id)?;
-
-        fs::remove_dir_all(path)?;
-
+    fn run_json(&self, mut jd: JohnnyDecimal) -> Result<()> {
+        jd.rm(&self.id)?;
         Ok(())
     }
 }

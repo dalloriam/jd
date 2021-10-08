@@ -1,12 +1,11 @@
-use std::fs;
 use std::path::PathBuf;
 
 use anyhow::Result;
 use clap::Clap;
 
-use johnny::Index;
+use johnny::JohnnyDecimal;
 
-use super::Config;
+use super::JCommand;
 
 #[derive(Clap)]
 pub struct InitCommand {
@@ -15,18 +14,14 @@ pub struct InitCommand {
     root: Option<PathBuf>,
 }
 
-impl InitCommand {
-    pub fn run(self, config: Config) -> Result<()> {
-        let mut index = Index::default();
+impl JCommand for InitCommand {
+    fn run(&self, mut jd: JohnnyDecimal) -> Result<()> {
+        jd.rebuild()?;
+        Ok(())
+    }
 
-        if let Some(root) = self.root {
-            index.build_from(root)?;
-        }
-
-        let f = fs::File::create(&config.index_path)?;
-
-        serde_json::to_writer(f, &index)?;
-
+    fn run_json(&self, mut jd: JohnnyDecimal) -> Result<()> {
+        jd.rebuild()?;
         Ok(())
     }
 }
