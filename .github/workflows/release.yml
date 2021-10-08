@@ -12,10 +12,10 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            artifact: jd-linux-amd64.exe
+            artifact: jd-linux-amd64
             src: jd
           - os: macos-latest
-            artifact: jd-macos-amd64.exe
+            artifact: jd-macos-amd64
             src: jd
           - os: windows-latest
             artifact: jd-windows-amd64.exe
