@@ -14,13 +14,13 @@ mod search;
 
 use anyhow::Result;
 
-use clap::Clap;
+use clap::Parser;
 
 use johnny::{Config, JohnnyDecimal};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-#[derive(Clap)]
+#[derive(Parser)]
 #[clap(version = VERSION, author = "William Dussault")]
 pub struct Root {
     #[clap(long = "json")]
@@ -48,7 +48,7 @@ impl Root {
     }
 }
 
-#[derive(Clap)]
+#[derive(Parser)]
 pub enum CategoryCmd {
     #[clap(name = "new")]
     Create(mkcat::MkCatCommand),
@@ -73,7 +73,7 @@ impl JCommand for CategoryCmd {
     }
 }
 
-#[derive(Clap)]
+#[derive(Parser)]
 pub enum ItemCmd {
     #[clap(name = "add_file")]
     AddFile(mv::MoveCommand),
@@ -118,7 +118,7 @@ impl JCommand for ItemCmd {
     }
 }
 
-#[derive(Clap)]
+#[derive(Parser)]
 enum AreaCmd {
     New(mkarea::MkAreaCommand),
 }
@@ -137,7 +137,7 @@ impl JCommand for AreaCmd {
     }
 }
 
-#[derive(Clap)]
+#[derive(Parser)]
 enum Cmd {
     #[clap(name = "init")]
     Init(init::InitCommand),

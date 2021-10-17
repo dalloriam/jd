@@ -1,13 +1,13 @@
 use std::path::PathBuf;
 
 use anyhow::Result;
-use clap::Clap;
+use clap::Parser;
 
 use johnny::JohnnyDecimal;
 
 use super::JCommand;
 
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct InitCommand {
     /// The root to use to build the initial index.
     #[clap(long = "root", short = 'r')]

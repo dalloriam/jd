@@ -1,11 +1,11 @@
 use anyhow::{anyhow, Result};
-use clap::Clap;
+use clap::Parser;
 
 use johnny::JohnnyDecimal;
 
 use super::JCommand;
 
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct MkCatCommand {
     category: usize,
     name: String,

@@ -1,11 +1,11 @@
 use anyhow::Result;
-use clap::Clap;
+use clap::Parser;
 
 use johnny::JohnnyDecimal;
 
 use super::{json, JCommand};
 
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct LsCommand {
     category: Option<usize>,
 }

@@ -1,11 +1,11 @@
 use anyhow::{anyhow, Result};
-use clap::Clap;
+use clap::Parser;
 
 use johnny::JohnnyDecimal;
 
 use super::{json, JCommand};
 
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct SearchCommand {
     /// The string to search for.
     expr: String,

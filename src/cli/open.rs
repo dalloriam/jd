@@ -1,11 +1,11 @@
 use anyhow::Result;
-use clap::Clap;
+use clap::Parser;
 
 use johnny::{JohnnyDecimal, Location, ID};
 
 use super::JCommand;
 
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct OpenCommand {
     id: String,
 }

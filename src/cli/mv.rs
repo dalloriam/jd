@@ -1,13 +1,13 @@
 use std::path::PathBuf;
 
 use anyhow::{bail, Result};
-use clap::Clap;
+use clap::Parser;
 
 use johnny::{JohnnyDecimal, ID};
 
 use super::JCommand;
 
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct MoveCommand {
     #[clap(long = "category", short = 'c')]
     category: usize,

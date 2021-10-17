@@ -1,11 +1,11 @@
 use anyhow::Result;
-use clap::Clap;
+use clap::Parser;
 
 use johnny::JohnnyDecimal;
 
 use super::JCommand;
 
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct AddURLCommand {
     #[clap(long = "category", short = 'c')]
     category: usize,
