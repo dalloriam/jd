@@ -240,4 +240,32 @@ impl JohnnyDecimal {
 
         Ok(())
     }
+
+    pub fn rename(&mut self, id: ID, new_name: &str) -> Result<Item> {
+        let resolver = self
+            .find_resolver(id.category)
+            .ok_or_else(|| anyhow!("no resolver for category: {}", id.category))?;
+
+        let area = self
+            .index
+            .get_area_from_category_mut(id.category)?
+            .ok_or_else(|| anyhow!("missing area"))?;
+
+        let category = area
+            .get_category_mut(id.category)?
+            .ok_or_else(|| anyhow!("missing category"))?;
+
+        let old_item = category
+            .get_item(&id)?
+            .ok_or_else(|| anyhow!("id doesn't exist"))?;
+
+        category.remove_item(&id)?;
+        let new_item = category.add_item(new_name, Some(&id))?;
+
+        resolver.rename_item(&old_item, &new_item, &self.index)?;
+
+        self.save()?;
+
+        Ok(new_item)
+    }
 }

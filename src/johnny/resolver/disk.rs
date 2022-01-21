@@ -226,4 +226,12 @@ impl LocationResolver for DiskResolver {
 
         Ok(())
     }
+
+    fn rename_item(&self, old_item: &Item, new_item: &Item, index: &Index) -> Result<()> {
+        ensure!(old_item.id.category == new_item.id.category);
+        let old_path = self
+            .get(old_item, index)?
+            .ok_or_else(|| anyhow!("source category path doesn't exist"))?;
+        self.set(new_item, old_path, index)
+    }
 }

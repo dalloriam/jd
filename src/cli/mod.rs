@@ -9,6 +9,7 @@ mod mkcat;
 mod mv;
 mod open;
 mod relocate;
+mod rename;
 mod rm;
 mod search;
 
@@ -92,6 +93,9 @@ pub enum ItemCmd {
 
     #[clap(name = "rm")]
     Remove(rm::RmCommand),
+
+    #[clap(name = "rename")]
+    Rename(rename::RenameCommand),
 }
 
 impl JCommand for ItemCmd {
@@ -103,6 +107,7 @@ impl JCommand for ItemCmd {
             ItemCmd::Move(cmd) => cmd.run(jd),
             ItemCmd::Locate(cmd) => cmd.run(jd),
             ItemCmd::Remove(cmd) => cmd.run(jd),
+            ItemCmd::Rename(cmd) => cmd.run(jd),
         }
     }
 
@@ -114,6 +119,7 @@ impl JCommand for ItemCmd {
             ItemCmd::Move(cmd) => cmd.run_json(jd),
             ItemCmd::Locate(cmd) => cmd.run_json(jd),
             ItemCmd::Remove(cmd) => cmd.run_json(jd),
+            ItemCmd::Rename(cmd) => cmd.run_json(jd),
         }
     }
 }

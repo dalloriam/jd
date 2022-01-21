@@ -74,4 +74,9 @@ impl LocationResolver for GithubResolver {
         // This is unsupported because it would mean renaming the org.
         bail!("unsupported operation");
     }
+
+    fn rename_item(&self, _old_item: &Item, _new_item: &Item, _index: &Index) -> Result<()> {
+        // This _could_ be implemented by making an API call to rename the repo, but I'm not sure it's worth the trouble.
+        bail!("unsupported operation");
+    }
 }
