@@ -11,12 +11,13 @@ pub struct CatRename {
     name: String,
 }
 
+#[async_trait::async_trait]
 impl JCommand for CatRename {
-    fn run(&self, mut jd: JohnnyDecimal) -> Result<()> {
-        jd.rename_category(self.category, &self.name)
+    async fn run(&self, mut jd: JohnnyDecimal) -> Result<()> {
+        jd.rename_category(self.category, &self.name).await
     }
 
-    fn run_json(&self, mut jd: JohnnyDecimal) -> Result<()> {
-        jd.rename_category(self.category, &self.name)
+    async fn run_json(&self, mut jd: JohnnyDecimal) -> Result<()> {
+        jd.rename_category(self.category, &self.name).await
     }
 }

@@ -14,14 +14,15 @@ pub struct InitCommand {
     root: Option<PathBuf>,
 }
 
+#[async_trait::async_trait]
 impl JCommand for InitCommand {
-    fn run(&self, mut jd: JohnnyDecimal) -> Result<()> {
-        jd.rebuild()?;
+    async fn run(&self, mut jd: JohnnyDecimal) -> Result<()> {
+        jd.rebuild().await?;
         Ok(())
     }
 
-    fn run_json(&self, mut jd: JohnnyDecimal) -> Result<()> {
-        jd.rebuild()?;
+    async fn run_json(&self, mut jd: JohnnyDecimal) -> Result<()> {
+        jd.rebuild().await?;
         Ok(())
     }
 }

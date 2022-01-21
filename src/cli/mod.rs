@@ -31,20 +31,21 @@ pub struct Root {
     command: Cmd,
 }
 
+#[async_trait::async_trait]
 pub trait JCommand {
-    fn run(&self, jd: JohnnyDecimal) -> Result<()>;
-    fn run_json(&self, jd: JohnnyDecimal) -> Result<()>;
+    async fn run(&self, jd: JohnnyDecimal) -> Result<()>;
+    async fn run_json(&self, jd: JohnnyDecimal) -> Result<()>;
 }
 
 impl Root {
-    pub fn run(self) -> Result<()> {
+    pub async fn run(self) -> Result<()> {
         let cfg = Config::load()?;
         let client = JohnnyDecimal::new(cfg)?;
 
         if self.json {
-            self.command.run_json(client)
+            self.command.run_json(client).await
         } else {
-            self.command.run(client)
+            self.command.run(client).await
         }
     }
 }
@@ -58,18 +59,19 @@ pub enum CategoryCmd {
     Rename(cat_rename::CatRename),
 }
 
+#[async_trait::async_trait]
 impl JCommand for CategoryCmd {
-    fn run(&self, jd: JohnnyDecimal) -> Result<()> {
+    async fn run(&self, jd: JohnnyDecimal) -> Result<()> {
         match self {
-            CategoryCmd::Create(cmd) => cmd.run(jd),
-            CategoryCmd::Rename(cmd) => cmd.run(jd),
+            CategoryCmd::Create(cmd) => cmd.run(jd).await,
+            CategoryCmd::Rename(cmd) => cmd.run(jd).await,
         }
     }
 
-    fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
+    async fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
         match self {
-            CategoryCmd::Create(cmd) => cmd.run_json(jd),
-            CategoryCmd::Rename(cmd) => cmd.run_json(jd),
+            CategoryCmd::Create(cmd) => cmd.run_json(jd).await,
+            CategoryCmd::Rename(cmd) => cmd.run_json(jd).await,
         }
     }
 }
@@ -98,28 +100,29 @@ pub enum ItemCmd {
     Rename(rename::RenameCommand),
 }
 
+#[async_trait::async_trait]
 impl JCommand for ItemCmd {
-    fn run(&self, jd: JohnnyDecimal) -> Result<()> {
+    async fn run(&self, jd: JohnnyDecimal) -> Result<()> {
         match self {
-            ItemCmd::AddFile(cmd) => cmd.run(jd),
-            ItemCmd::AddURL(cmd) => cmd.run(jd),
-            ItemCmd::Open(cmd) => cmd.run(jd),
-            ItemCmd::Move(cmd) => cmd.run(jd),
-            ItemCmd::Locate(cmd) => cmd.run(jd),
-            ItemCmd::Remove(cmd) => cmd.run(jd),
-            ItemCmd::Rename(cmd) => cmd.run(jd),
+            ItemCmd::AddFile(cmd) => cmd.run(jd).await,
+            ItemCmd::AddURL(cmd) => cmd.run(jd).await,
+            ItemCmd::Open(cmd) => cmd.run(jd).await,
+            ItemCmd::Move(cmd) => cmd.run(jd).await,
+            ItemCmd::Locate(cmd) => cmd.run(jd).await,
+            ItemCmd::Remove(cmd) => cmd.run(jd).await,
+            ItemCmd::Rename(cmd) => cmd.run(jd).await,
         }
     }
 
-    fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
+    async fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
         match self {
-            ItemCmd::AddFile(cmd) => cmd.run_json(jd),
-            ItemCmd::AddURL(cmd) => cmd.run_json(jd),
-            ItemCmd::Open(cmd) => cmd.run_json(jd),
-            ItemCmd::Move(cmd) => cmd.run_json(jd),
-            ItemCmd::Locate(cmd) => cmd.run_json(jd),
-            ItemCmd::Remove(cmd) => cmd.run_json(jd),
-            ItemCmd::Rename(cmd) => cmd.run_json(jd),
+            ItemCmd::AddFile(cmd) => cmd.run_json(jd).await,
+            ItemCmd::AddURL(cmd) => cmd.run_json(jd).await,
+            ItemCmd::Open(cmd) => cmd.run_json(jd).await,
+            ItemCmd::Move(cmd) => cmd.run_json(jd).await,
+            ItemCmd::Locate(cmd) => cmd.run_json(jd).await,
+            ItemCmd::Remove(cmd) => cmd.run_json(jd).await,
+            ItemCmd::Rename(cmd) => cmd.run_json(jd).await,
         }
     }
 }
@@ -129,16 +132,17 @@ enum AreaCmd {
     New(mkarea::MkAreaCommand),
 }
 
+#[async_trait::async_trait]
 impl JCommand for AreaCmd {
-    fn run(&self, jd: JohnnyDecimal) -> Result<()> {
+    async fn run(&self, jd: JohnnyDecimal) -> Result<()> {
         match self {
-            AreaCmd::New(cmd) => cmd.run(jd),
+            AreaCmd::New(cmd) => cmd.run(jd).await,
         }
     }
 
-    fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
+    async fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
         match self {
-            AreaCmd::New(cmd) => cmd.run_json(jd),
+            AreaCmd::New(cmd) => cmd.run_json(jd).await,
         }
     }
 }
@@ -170,28 +174,29 @@ enum Cmd {
     Item(ItemCmd),
 }
 
+#[async_trait::async_trait]
 impl JCommand for Cmd {
-    fn run(&self, jd: JohnnyDecimal) -> Result<()> {
+    async fn run(&self, jd: JohnnyDecimal) -> Result<()> {
         match self {
-            Cmd::Init(cmd) => cmd.run(jd),
-            Cmd::List(cmd) => cmd.run(jd),
-            Cmd::Open(cmd) => cmd.run(jd),
-            Cmd::Search(cmd) => cmd.run(jd),
-            Cmd::Areas(cmd) => cmd.run(jd),
-            Cmd::Categories(cmd) => cmd.run(jd),
-            Cmd::Item(cmd) => cmd.run(jd),
+            Cmd::Init(cmd) => cmd.run(jd).await,
+            Cmd::List(cmd) => cmd.run(jd).await,
+            Cmd::Open(cmd) => cmd.run(jd).await,
+            Cmd::Search(cmd) => cmd.run(jd).await,
+            Cmd::Areas(cmd) => cmd.run(jd).await,
+            Cmd::Categories(cmd) => cmd.run(jd).await,
+            Cmd::Item(cmd) => cmd.run(jd).await,
         }
     }
 
-    fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
+    async fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
         match self {
-            Cmd::Init(cmd) => cmd.run_json(jd),
-            Cmd::List(cmd) => cmd.run_json(jd),
-            Cmd::Open(cmd) => cmd.run_json(jd),
-            Cmd::Search(cmd) => cmd.run_json(jd),
-            Cmd::Areas(cmd) => cmd.run_json(jd),
-            Cmd::Categories(cmd) => cmd.run_json(jd),
-            Cmd::Item(cmd) => cmd.run_json(jd),
+            Cmd::Init(cmd) => cmd.run_json(jd).await,
+            Cmd::List(cmd) => cmd.run_json(jd).await,
+            Cmd::Open(cmd) => cmd.run_json(jd).await,
+            Cmd::Search(cmd) => cmd.run_json(jd).await,
+            Cmd::Areas(cmd) => cmd.run_json(jd).await,
+            Cmd::Categories(cmd) => cmd.run_json(jd).await,
+            Cmd::Item(cmd) => cmd.run_json(jd).await,
         }
     }
 }

@@ -109,8 +109,9 @@ impl DiskResolver {
     }
 }
 
+#[async_trait::async_trait]
 impl LocationResolver for DiskResolver {
-    fn get(&self, item: &Item, index: &Index) -> Result<Option<Location>> {
+    async fn get(&self, item: &Item, index: &Index) -> Result<Option<Location>> {
         let category_path = self.get_category_path(item.id.category, index)?;
         if !category_path.exists() {
             return Ok(None);
@@ -121,7 +122,7 @@ impl LocationResolver for DiskResolver {
         Ok(Some(Location::Path(dst)))
     }
 
-    fn collect(&self, index: &mut Index) -> Result<()> {
+    async fn collect(&self, index: &mut Index) -> Result<()> {
         let area_re = Regex::new(r"(\d\d)-(\d\d) (.*)")?;
 
         for entry in fs::read_dir(&self.root_path)?.filter_map(|f| f.ok()) {
@@ -163,7 +164,7 @@ impl LocationResolver for DiskResolver {
         Ok(())
     }
 
-    fn set(&self, item: &Item, src_location: Location, index: &Index) -> Result<()> {
+    async fn set(&self, item: &Item, src_location: Location, index: &Index) -> Result<()> {
         let category_path = self.get_category_path(item.id.category, index)?;
         if !category_path.exists() {
             fs::create_dir_all(&category_path)?;
@@ -187,8 +188,8 @@ impl LocationResolver for DiskResolver {
         Ok(())
     }
 
-    fn remove(&self, id: &Item, index: &Index) -> Result<()> {
-        if let Some(loc) = self.get(id, index)? {
+    async fn remove(&self, id: &Item, index: &Index) -> Result<()> {
+        if let Some(loc) = self.get(id, index).await? {
             match loc {
                 Location::Path(p) => {
                     if p.exists() {
@@ -204,7 +205,7 @@ impl LocationResolver for DiskResolver {
         Ok(())
     }
 
-    fn rename_category(&self, category: usize, new_name: &str, index: &Index) -> Result<()> {
+    async fn rename_category(&self, category: usize, new_name: &str, index: &Index) -> Result<()> {
         let old_path = self.get_category_path(category, index)?;
 
         let area = index
@@ -227,11 +228,12 @@ impl LocationResolver for DiskResolver {
         Ok(())
     }
 
-    fn rename_item(&self, old_item: &Item, new_item: &Item, index: &Index) -> Result<()> {
+    async fn rename_item(&self, old_item: &Item, new_item: &Item, index: &Index) -> Result<()> {
         ensure!(old_item.id.category == new_item.id.category);
         let old_path = self
-            .get(old_item, index)?
+            .get(old_item, index)
+            .await?
             .ok_or_else(|| anyhow!("source category path doesn't exist"))?;
-        self.set(new_item, old_path, index)
+        self.set(new_item, old_path, index).await
     }
 }

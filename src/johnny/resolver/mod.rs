@@ -25,13 +25,14 @@ impl Display for Location {
     }
 }
 
+#[async_trait::async_trait]
 pub trait LocationResolver {
-    fn get(&self, item: &Item, index: &Index) -> Result<Option<Location>>;
-    fn collect(&self, index: &mut Index) -> Result<()>;
-    fn set(&self, item: &Item, src_location: Location, index: &Index) -> Result<()>;
-    fn remove(&self, id: &Item, index: &Index) -> Result<()>;
-    fn rename_category(&self, category: usize, new_name: &str, index: &Index) -> Result<()>;
-    fn rename_item(&self, old_item: &Item, new_item: &Item, index: &Index) -> Result<()>;
+    async fn get(&self, item: &Item, index: &Index) -> Result<Option<Location>>;
+    async fn collect(&self, index: &mut Index) -> Result<()>;
+    async fn set(&self, item: &Item, src_location: Location, index: &Index) -> Result<()>;
+    async fn remove(&self, id: &Item, index: &Index) -> Result<()>;
+    async fn rename_category(&self, category: usize, new_name: &str, index: &Index) -> Result<()>;
+    async fn rename_item(&self, old_item: &Item, new_item: &Item, index: &Index) -> Result<()>;
 }
 
 pub use disk::DiskResolver;

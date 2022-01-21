@@ -19,10 +19,11 @@ pub fn reset_signal_pipe_handler() -> Result<()> {
     Ok(())
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     reset_signal_pipe_handler().unwrap();
 
-    if let Err(e) = cli::Root::parse().run() {
+    if let Err(e) = cli::Root::parse().run().await {
         eprintln!("{}", e);
     }
 }

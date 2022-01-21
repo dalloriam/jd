@@ -11,16 +11,17 @@ pub struct LocateCommand {
     id: ID,
 }
 
+#[async_trait::async_trait]
 impl JCommand for LocateCommand {
-    fn run(&self, jd: JohnnyDecimal) -> Result<()> {
-        if let Some(loc) = jd.locate(&self.id)? {
+    async fn run(&self, jd: JohnnyDecimal) -> Result<()> {
+        if let Some(loc) = jd.locate(&self.id).await? {
             println!("{}", loc);
         }
         Ok(())
     }
 
-    fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
-        if let Some(loc) = jd.locate(&self.id)? {
+    async fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
+        if let Some(loc) = jd.locate(&self.id).await? {
             println!("{}", serde_json::to_string(&loc)?);
         }
         Ok(())

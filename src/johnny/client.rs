@@ -10,7 +10,7 @@ use crate::{Config, Index, Item, Location, LocationResolver, ResolverConstraint,
 pub struct JohnnyDecimal {
     config: Config,
     pub index: Box<Index>,
-    resolvers: Vec<(ResolverConstraint, Arc<dyn LocationResolver>)>,
+    resolvers: Vec<(ResolverConstraint, Arc<dyn LocationResolver + Send + Sync>)>,
 }
 
 impl JohnnyDecimal {
@@ -20,7 +20,7 @@ impl JohnnyDecimal {
         let mut resolvers = Vec::new();
         for resolver in config.resolvers.iter() {
             // TODO: Detect resolver conflict
-            let r: Arc<dyn LocationResolver> = match &resolver.config {
+            let r: Arc<dyn LocationResolver + Send + Sync> = match &resolver.config {
                 ResolverConfig::DiskResolver { root } => Arc::new(DiskResolver::new(root.clone())),
                 &ResolverConfig::GithubResolver { github_area } => {
                     Arc::new(GithubResolver::new(github_area))
@@ -36,7 +36,7 @@ impl JohnnyDecimal {
         })
     }
 
-    fn find_resolver(&self, category: usize) -> Option<Arc<dyn LocationResolver>> {
+    fn find_resolver(&self, category: usize) -> Option<Arc<dyn LocationResolver + Send + Sync>> {
         self.resolvers
             .iter()
             .find(|(c, _r)| c.matches(category))
@@ -44,7 +44,12 @@ impl JohnnyDecimal {
             .cloned()
     }
 
-    pub fn mv(&mut self, category: usize, source_path: &Path, id: Option<&ID>) -> Result<Item> {
+    pub async fn mv(
+        &mut self,
+        category: usize,
+        source_path: &Path,
+        id: Option<&ID>,
+    ) -> Result<Item> {
         let resolver = self
             .find_resolver(category)
             .ok_or_else(|| anyhow!("no resolver for category: {}", category))?;
@@ -68,12 +73,12 @@ impl JohnnyDecimal {
 
         let src_location = Location::Path(PathBuf::from(source_path));
 
-        resolver.set(&item, src_location, &self.index)?;
+        resolver.set(&item, src_location, &self.index).await?;
 
         Ok(item)
     }
 
-    pub fn alloc_url(&mut self, category: usize, name: &str, url: &str) -> Result<Item> {
+    pub async fn alloc_url(&mut self, category: usize, name: &str, url: &str) -> Result<Item> {
         let resolver = self
             .find_resolver(category)
             .ok_or_else(|| anyhow!("no resolver for category: {}", category))?;
@@ -89,14 +94,16 @@ impl JohnnyDecimal {
 
         let item = category.add_item(name, None)?;
 
-        resolver.set(&item, Location::URL(String::from(url)), &self.index)?;
+        resolver
+            .set(&item, Location::URL(String::from(url)), &self.index)
+            .await?;
 
         self.save()?;
 
         Ok(item)
     }
 
-    pub fn relocate(&mut self, id: &ID, category: usize) -> Result<Item> {
+    pub async fn relocate(&mut self, id: &ID, category: usize) -> Result<Item> {
         let item = {
             let current_area = self
                 .index
@@ -120,7 +127,8 @@ impl JohnnyDecimal {
             .ok_or_else(|| anyhow!("no resolver for category: {}", id.category))?;
 
         let src_path = src_resolver
-            .get(&item, &self.index)?
+            .get(&item, &self.index)
+            .await?
             .ok_or_else(|| anyhow!("source file not found"))?;
 
         let tgt_area = self
@@ -138,7 +146,7 @@ impl JohnnyDecimal {
         let dst_resolver = self
             .find_resolver(category)
             .ok_or_else(|| anyhow!("no resolver for category: {}", category))?;
-        dst_resolver.set(&item, src_path, &self.index)?;
+        dst_resolver.set(&item, src_path, &self.index).await?;
 
         // Now we save.
         self.save()?;
@@ -146,7 +154,7 @@ impl JohnnyDecimal {
         Ok(item)
     }
 
-    pub fn locate(&self, id: &ID) -> Result<Option<Location>> {
+    pub async fn locate(&self, id: &ID) -> Result<Option<Location>> {
         let resolver = self
             .find_resolver(id.category)
             .ok_or_else(|| anyhow!("no resolver for category: {}", id.category))?;
@@ -161,13 +169,13 @@ impl JohnnyDecimal {
             .ok_or_else(|| anyhow!("missing category"))?;
 
         if let Some(item) = category.get_item(id)? {
-            resolver.get(&item, &self.index)
+            resolver.get(&item, &self.index).await
         } else {
             Ok(None)
         }
     }
 
-    pub fn rm(&mut self, id: &ID) -> Result<()> {
+    pub async fn rm(&mut self, id: &ID) -> Result<()> {
         let opt_item = {
             let area = self
                 .index
@@ -192,7 +200,7 @@ impl JohnnyDecimal {
                 .find_resolver(id.category)
                 .ok_or_else(|| anyhow!("no resolver for category: {}", id.category))?;
 
-            resolver.remove(&item, &self.index)?;
+            resolver.remove(&item, &self.index).await?;
         }
 
         self.save()?;
@@ -204,11 +212,11 @@ impl JohnnyDecimal {
         self.index.save(&self.config.index_path)
     }
 
-    pub fn rebuild(&mut self) -> Result<()> {
+    pub async fn rebuild(&mut self) -> Result<()> {
         self.index = Box::new(Index::default());
 
         for (_, resolver) in self.resolvers.iter() {
-            resolver.collect(&mut self.index)?;
+            resolver.collect(&mut self.index).await?;
         }
 
         self.save()?;
@@ -216,13 +224,15 @@ impl JohnnyDecimal {
         Ok(())
     }
 
-    pub fn rename_category(&mut self, category: usize, new_name: &str) -> Result<()> {
+    pub async fn rename_category(&mut self, category: usize, new_name: &str) -> Result<()> {
         {
             let resolver = self
                 .find_resolver(category)
                 .ok_or_else(|| anyhow!("no resolver for category: {}", category))?;
 
-            resolver.rename_category(category, new_name, &self.index)?;
+            resolver
+                .rename_category(category, new_name, &self.index)
+                .await?;
         }
 
         let area = self
@@ -241,7 +251,7 @@ impl JohnnyDecimal {
         Ok(())
     }
 
-    pub fn rename(&mut self, id: ID, new_name: &str) -> Result<Item> {
+    pub async fn rename(&mut self, id: ID, new_name: &str) -> Result<Item> {
         let resolver = self
             .find_resolver(id.category)
             .ok_or_else(|| anyhow!("no resolver for category: {}", id.category))?;
@@ -262,8 +272,9 @@ impl JohnnyDecimal {
         category.remove_item(&id)?;
         let new_item = category.add_item(new_name, Some(&id))?;
 
-        resolver.rename_item(&old_item, &new_item, &self.index)?;
-
+        resolver
+            .rename_item(&old_item, &new_item, &self.index)
+            .await?;
         self.save()?;
 
         Ok(new_item)

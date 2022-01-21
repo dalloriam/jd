@@ -15,15 +15,16 @@ pub struct AddURLCommand {
     url: String,
 }
 
+#[async_trait::async_trait]
 impl JCommand for AddURLCommand {
-    fn run(&self, mut jd: JohnnyDecimal) -> Result<()> {
-        let item = jd.alloc_url(self.category, &self.name, &self.url)?;
+    async fn run(&self, mut jd: JohnnyDecimal) -> Result<()> {
+        let item = jd.alloc_url(self.category, &self.name, &self.url).await?;
         println!("{}", item);
         Ok(())
     }
 
-    fn run_json(&self, mut jd: JohnnyDecimal) -> Result<()> {
-        jd.alloc_url(self.category, &self.name, &self.url)?;
+    async fn run_json(&self, mut jd: JohnnyDecimal) -> Result<()> {
+        jd.alloc_url(self.category, &self.name, &self.url).await?;
         Ok(())
     }
 }
