@@ -19,8 +19,9 @@ pub struct SearchCommand {
     category: Option<usize>,
 }
 
+#[async_trait::async_trait]
 impl JCommand for SearchCommand {
-    fn run(&self, jd: JohnnyDecimal) -> Result<()> {
+    async fn run(&self, jd: JohnnyDecimal) -> Result<()> {
         let mut last_area_name = String::default();
         let mut last_category_name = String::default();
 
@@ -62,7 +63,7 @@ impl JCommand for SearchCommand {
         Ok(())
     }
 
-    fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
+    async fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
         let hits = jd.index.search(&self.expr);
         let viewer = json::Viewer::new(&jd);
 

@@ -11,9 +11,9 @@ pub struct OpenCommand {
 }
 
 impl OpenCommand {
-    pub fn open(&self, jd: JohnnyDecimal) -> Result<()> {
+    pub async fn open(&self, jd: JohnnyDecimal) -> Result<()> {
         let id = self.id.parse::<ID>()?;
-        if let Some(location) = jd.locate(&id)? {
+        if let Some(location) = jd.locate(&id).await? {
             match location {
                 Location::Path(p) => open::that(p)?,
                 Location::URL(url) => open::that(url)?,
@@ -24,12 +24,13 @@ impl OpenCommand {
     }
 }
 
+#[async_trait::async_trait]
 impl JCommand for OpenCommand {
-    fn run(&self, jd: JohnnyDecimal) -> Result<()> {
-        self.open(jd)
+    async fn run(&self, jd: JohnnyDecimal) -> Result<()> {
+        self.open(jd).await
     }
 
-    fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
-        self.open(jd)
+    async fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
+        self.open(jd).await
     }
 }

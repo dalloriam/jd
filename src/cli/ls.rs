@@ -25,8 +25,9 @@ impl LsCommand {
     }
 }
 
+#[async_trait::async_trait]
 impl JCommand for LsCommand {
-    fn run(&self, jd: JohnnyDecimal) -> Result<()> {
+    async fn run(&self, jd: JohnnyDecimal) -> Result<()> {
         for area in jd.index.list_areas() {
             if let Some(cat_filter) = self.category {
                 if cat_filter / 10 != area.bounds.0 / 10 {
@@ -56,7 +57,7 @@ impl JCommand for LsCommand {
         Ok(())
     }
 
-    fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
+    async fn run_json(&self, jd: JohnnyDecimal) -> Result<()> {
         if let Some(cat_filter) = self.category {
             let viewer = json::Viewer::new(&jd);
 

@@ -11,8 +11,9 @@ pub struct MkAreaCommand {
     name: String,
 }
 
+#[async_trait::async_trait]
 impl JCommand for MkAreaCommand {
-    fn run(&self, mut jd: JohnnyDecimal) -> Result<()> {
+    async fn run(&self, mut jd: JohnnyDecimal) -> Result<()> {
         let lower_bound = (self.area / 10) * 10;
         let upper_bound = lower_bound + 9;
 
@@ -29,7 +30,7 @@ impl JCommand for MkAreaCommand {
         Ok(())
     }
 
-    fn run_json(&self, mut jd: JohnnyDecimal) -> Result<()> {
+    async fn run_json(&self, mut jd: JohnnyDecimal) -> Result<()> {
         let lower_bound = (self.area / 10) * 10;
         let upper_bound = lower_bound + 9;
 

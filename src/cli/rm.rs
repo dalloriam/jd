@@ -10,14 +10,15 @@ pub struct RmCommand {
     id: ID,
 }
 
+#[async_trait::async_trait]
 impl JCommand for RmCommand {
-    fn run(&self, mut jd: JohnnyDecimal) -> Result<()> {
-        jd.rm(&self.id)?;
+    async fn run(&self, mut jd: JohnnyDecimal) -> Result<()> {
+        jd.rm(&self.id).await?;
         Ok(())
     }
 
-    fn run_json(&self, mut jd: JohnnyDecimal) -> Result<()> {
-        jd.rm(&self.id)?;
+    async fn run_json(&self, mut jd: JohnnyDecimal) -> Result<()> {
+        jd.rm(&self.id).await?;
         Ok(())
     }
 }

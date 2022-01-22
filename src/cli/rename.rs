@@ -11,15 +11,16 @@ pub struct RenameCommand {
     name: String,
 }
 
+#[async_trait::async_trait]
 impl JCommand for RenameCommand {
-    fn run(&self, mut jd: JohnnyDecimal) -> Result<()> {
-        let item = jd.rename(self.id.clone(), &self.name)?;
+    async fn run(&self, mut jd: JohnnyDecimal) -> Result<()> {
+        let item = jd.rename(self.id.clone(), &self.name).await?;
         println!("{}", item);
         Ok(())
     }
 
-    fn run_json(&self, mut jd: JohnnyDecimal) -> Result<()> {
-        jd.rename(self.id.clone(), &self.name)?;
+    async fn run_json(&self, mut jd: JohnnyDecimal) -> Result<()> {
+        jd.rename(self.id.clone(), &self.name).await?;
         Ok(())
     }
 }

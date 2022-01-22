@@ -11,8 +11,9 @@ pub struct MkCatCommand {
     name: String,
 }
 
+#[async_trait::async_trait]
 impl JCommand for MkCatCommand {
-    fn run(&self, mut jd: JohnnyDecimal) -> Result<()> {
+    async fn run(&self, mut jd: JohnnyDecimal) -> Result<()> {
         let area = jd
             .index
             .get_area_from_category_mut(self.category)?
@@ -23,7 +24,7 @@ impl JCommand for MkCatCommand {
         jd.save()
     }
 
-    fn run_json(&self, mut jd: JohnnyDecimal) -> Result<()> {
+    async fn run_json(&self, mut jd: JohnnyDecimal) -> Result<()> {
         let area = jd
             .index
             .get_area_from_category_mut(self.category)?

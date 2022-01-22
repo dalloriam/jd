@@ -27,20 +27,21 @@ impl MoveCommand {
     }
 }
 
+#[async_trait::async_trait]
 impl JCommand for MoveCommand {
-    fn run(&self, mut jd: JohnnyDecimal) -> Result<()> {
+    async fn run(&self, mut jd: JohnnyDecimal) -> Result<()> {
         self.validate_id()?;
         for f in self.files.iter() {
-            let item = jd.mv(self.category, f, self.id.as_ref())?;
+            let item = jd.mv(self.category, f, self.id.as_ref()).await?;
             println!("{}", item);
         }
         Ok(())
     }
 
-    fn run_json(&self, mut jd: JohnnyDecimal) -> Result<()> {
+    async fn run_json(&self, mut jd: JohnnyDecimal) -> Result<()> {
         self.validate_id()?;
         for f in self.files.iter() {
-            jd.mv(self.category, f, self.id.as_ref())?;
+            jd.mv(self.category, f, self.id.as_ref()).await?;
         }
         Ok(())
     }
