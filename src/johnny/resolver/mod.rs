@@ -1,5 +1,6 @@
 mod disk;
 mod github;
+mod menmos;
 
 use std::fmt::Display;
 use std::path::PathBuf;
@@ -37,3 +38,4 @@ pub trait LocationResolver {
 
 pub use disk::DiskResolver;
 pub use github::GithubResolver;
+pub use menmos::MenmosResolver;

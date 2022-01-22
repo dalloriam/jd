@@ -4,7 +4,7 @@ use std::sync::Arc;
 use anyhow::{anyhow, Result};
 
 use crate::config::ResolverConfig;
-use crate::resolver::{DiskResolver, GithubResolver};
+use crate::resolver::{DiskResolver, GithubResolver, MenmosResolver};
 use crate::{Config, Index, Item, Location, LocationResolver, ResolverConstraint, ID};
 
 pub struct JohnnyDecimal {
@@ -14,7 +14,7 @@ pub struct JohnnyDecimal {
 }
 
 impl JohnnyDecimal {
-    pub fn new(config: Config) -> Result<Self> {
+    pub async fn new(config: Config) -> Result<Self> {
         let index = Box::new(Index::load(&config.index_path).unwrap_or_default());
 
         let mut resolvers = Vec::new();
@@ -22,8 +22,11 @@ impl JohnnyDecimal {
             // TODO: Detect resolver conflict
             let r: Arc<dyn LocationResolver + Send + Sync> = match &resolver.config {
                 ResolverConfig::DiskResolver { root } => Arc::new(DiskResolver::new(root.clone())),
-                &ResolverConfig::GithubResolver { github_area } => {
-                    Arc::new(GithubResolver::new(github_area))
+                ResolverConfig::GithubResolver { github_area } => {
+                    Arc::new(GithubResolver::new(*github_area))
+                }
+                ResolverConfig::MenmosResolver { profile } => {
+                    Arc::new(MenmosResolver::new(profile).await?)
                 }
             };
             resolvers.push((resolver.constraint.clone(), r));

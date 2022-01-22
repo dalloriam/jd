@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 pub enum ResolverConfig {
     DiskResolver { root: PathBuf },
     GithubResolver { github_area: usize },
+    MenmosResolver { profile: String },
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

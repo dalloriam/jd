@@ -40,7 +40,7 @@ pub trait JCommand {
 impl Root {
     pub async fn run(self) -> Result<()> {
         let cfg = Config::load()?;
-        let client = JohnnyDecimal::new(cfg)?;
+        let client = JohnnyDecimal::new(cfg).await?;
 
         if self.json {
             self.command.run_json(client).await
