@@ -2,16 +2,15 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use anyhow::{anyhow, bail, ensure, Result};
+use anyhow::Result;
 
-use async_stream::try_stream;
-use futures::{Stream, StreamExt};
+use futures::StreamExt;
 
 use menmos_client::{Client as Menmos, Type};
 use menmos_client::{Meta, Query};
 
 use crate::LocationResolver;
-use crate::{Index, Item, Location, ID};
+use crate::{Index, Item, Location};
 
 use super::util;
 
@@ -43,7 +42,6 @@ impl MenmosResolver {
             .create_empty(Meta::directory(&item.name).with_meta(JD_ID_META, item.id.to_string()))
             .await?;
 
-        // TODO: Recursive & parallel
         let tags = vec![String::from(JD_ITEM_TAG)];
         let mut meta_map = HashMap::new();
         meta_map.insert(String::from(JD_PARENT_ID_META), item.id.to_string());
@@ -97,6 +95,8 @@ impl MenmosResolver {
 #[async_trait::async_trait]
 impl LocationResolver for MenmosResolver {
     async fn get(&self, item: &Item, _index: &Index) -> Result<Option<Location>> {
+        // TODO: Use "link-to-query" in menmos-web when its available instead of returning the blob URL.
+        // This would allow displaying everything in a single item.
         let results = self
             .mmos
             .query(
@@ -119,12 +119,21 @@ impl LocationResolver for MenmosResolver {
 
     async fn set(&self, item: &Item, src_location: Location, _index: &Index) -> Result<()> {
         match src_location {
-            Location::URL(_) => Ok(()),
-            Location::Path(src_dir) => self.upload_dir(src_dir, item).await,
+            Location::URL(_) => {
+                // TODO: Support downloading the URL and pushing it to menmos.
+                Ok(())
+            }
+            Location::Path(src_dir) => {
+                // TODO: Make sure `src_dir` actually is a directory.
+                // If not, simply push the item to menmos.
+                self.upload_dir(src_dir, item).await
+            }
         }
     }
 
     async fn remove(&self, _id: &Item, _index: &Index) -> Result<()> {
+        // Going to need to implement a recursive delete.
+        // Would be in a better place with a high level client.
         unimplemented!()
     }
 

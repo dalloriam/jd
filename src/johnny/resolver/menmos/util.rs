@@ -6,7 +6,7 @@ use anyhow::Result;
 
 use async_stream::try_stream;
 
-use futures::{Stream, StreamExt};
+use futures::Stream;
 
 use menmos_client::{Client as Menmos, Meta, Type};
 
